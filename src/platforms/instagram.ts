@@ -25,7 +25,7 @@ export class InstagramPublisher extends BasePublisher {
     );
 
     const valid = me.id === expected;
-    let grantedScopes: string[] = ['instagram_business_basic', 'instagram_business_content_publish'];
+    let grantedScopes: string[] = [];
     let expiresAt: string | undefined = undefined;
 
     try {
@@ -42,14 +42,16 @@ export class InstagramPublisher extends BasePublisher {
       // Debug token endpoint is optional if using basic display or standalone token
     }
 
+    const scopeStatus = grantedScopes.length > 0 ? `scopes: [${grantedScopes.join(', ')}]` : 'scopes: uninspected';
     return {
       platform: 'instagram',
       valid,
       accountId: me.id,
       grantedScopes,
       expiresAt: expiresAt ?? null,
-      diagnostic: `Instagram identity: @${me.username ?? me.id} (${me.id})${expiresAt ? ` (expires: ${expiresAt})` : ''}`,
+      diagnostic: `Instagram identity: @${me.username ?? me.id} (${me.id})${expiresAt ? ` (expires: ${expiresAt})` : ''} [${scopeStatus}]`,
     };
+
 
   }
 

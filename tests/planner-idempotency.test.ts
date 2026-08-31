@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-
 import { idempotencyKey } from '../src/shared/hash.js';
+import { selectArchetype, selectCtaMode, selectWeighted } from '../src/content/selection.js';
 
-describe('planner idempotency and cap enforcement', () => {
+describe('planner idempotency, cap enforcement, and weighted selection', () => {
   it('generates deterministic idempotency keys without random plan UUIDs', () => {
     const key1 = idempotencyKey('2026-08-31', 'threads', '1');
     const key2 = idempotencyKey('2026-08-31', 'threads', '1');
@@ -15,8 +15,92 @@ describe('planner idempotency and cap enforcement', () => {
     expect(key1).not.toContain('null');
   });
 
+  it('converges proportionally according to configured contentMix weights', () => {
+    const mix = {
+      painPointOrOpinion: 0.35,
+      educationalValue: 0.25,
+      productProof: 0.20,
+      timelyTopic: 0.10,
+      conversion: 0.10,
+    };
+
+    const choices: string[] = [];
+    for (let i = 0; i < 100; i++) {
+      const selected = selectArchetype(mix, choices);
+      choices.push(selected);
+    }
+
+    const counts: Record<string, number> = {};
+    for (const c of choices) counts[c] = (counts[c] ?? 0) + 1;
+
+    expect(counts['pain_point']).toBe(35);
+    expect(counts['educational_value']).toBe(25);
+    expect(counts['product_proof']).toBe(20);
+    expect(counts['timely_topic']).toBe(10);
+    expect(counts['conversion_offer']).toBe(10);
+
+    // Verify later archetypes (conversion_offer, timely_topic) are reached early in small runs (e.g. 10 slots)
+    const early10 = choices.slice(0, 10);
+    expect(early10).toContain('timely_topic');
+    expect(early10).toContain('conversion_offer');
+  });
+
+  it('converges proportionally according to configured CTA weights', () => {
+    const ctaMix = { none: 0.50, soft: 0.30, direct: 0.20 };
+    const choices: Array<'none' | 'soft' | 'direct'> = [];
+
+    for (let i = 0; i < 10; i++) {
+      const selected = selectCtaMode(ctaMix, choices);
+      choices.push(selected);
+    }
+
+    const counts: Record<string, number> = {};
+    for (const c of choices) counts[c] = (counts[c] ?? 0) + 1;
+
+    expect(counts['none']).toBe(5);
+    expect(counts['soft']).toBe(3);
+    expect(counts['direct']).toBe(2);
+    // Direct CTA is reached within the first 5 slots
+    expect(choices.slice(0, 5)).toContain('direct');
+  });
+
+  it('continues selection from rolling history without resetting to first category', () => {
+    const mix = {
+      painPointOrOpinion: 0.35,
+      educationalValue: 0.25,
+      productProof: 0.20,
+      timelyTopic: 0.10,
+      conversion: 0.10,
+    };
+
+    // Day 1 chose pain_point and educational_value
+    const day1History = ['pain_point', 'educational_value'];
+
+    // Day 2 next choices balance remaining unrepresented categories
+    const day2Choice1 = selectArchetype(mix, day1History);
+    expect(day2Choice1).toBe('product_proof');
+
+    const day2Choice2 = selectArchetype(mix, day1History, [day2Choice1]);
+    expect(day2Choice2).toBe('timely_topic');
+
+    // Day 3 continues seamlessly
+    const day3History = [...day1History, day2Choice1, day2Choice2];
+    const day3Choice1 = selectArchetype(mix, day3History);
+    expect(day3Choice1).toBe('pain_point');
+
+    const day3Choice2 = selectArchetype(mix, day3History, [day3Choice1]);
+    expect(day3Choice2).toBe('conversion_offer');
+  });
+
+
+  it('is completely deterministic across multiple runs with identical input', () => {
+    const mix = { a: 0.6, b: 0.4 };
+    const run1 = [selectWeighted(mix, []), selectWeighted(mix, ['a'])];
+    const run2 = [selectWeighted(mix, []), selectWeighted(mix, ['a'])];
+    expect(run1).toEqual(run2);
+  });
+
   it('respects hard daily caps and weekly caps in slot calculation', () => {
-    // Simulate cap logic
     const calculateSlotsNeeded = (
       postsPerDay: number | undefined,
       postsPerWeek: number | undefined,
@@ -60,3 +144,4 @@ describe('planner idempotency and cap enforcement', () => {
     expect(postWithNoCta.destinationUrl).toBeNull();
   });
 });
+

@@ -5,6 +5,7 @@ import { criticize } from '../content/critic.js';
 import { generateVariants } from '../content/generator.js';
 import { validatePreparedPost } from '../content/gates.js';
 import { chooseSlot } from '../content/schedule.js';
+import { selectArchetype, selectCtaMode } from '../content/selection.js';
 import { attributedUrl } from '../content/utm.js';
 import { MarketingRepository } from '../db/repository.js';
 import { generateAndStoreAsset } from '../media/generate.js';
@@ -22,26 +23,6 @@ const archetypeTopics: Record<string, string> = {
   timely_topic: '台灣近期國中英文教育趨勢與家長準備重點',
   conversion_offer: '紙屬英文客製化興趣英語教材體驗方案',
 };
-
-function selectArchetype(mix: Record<string, number>, index: number): string {
-  const mapping: Record<string, string> = {
-    painPointOrOpinion: 'pain_point',
-    educationalValue: 'educational_value',
-    productProof: 'product_proof',
-    timelyTopic: 'timely_topic',
-    conversion: 'conversion_offer',
-  };
-
-  const keys = Object.keys(mix);
-  if (keys.length === 0) return 'pain_point';
-  const key = keys[index % keys.length]!;
-  return mapping[key] ?? key;
-}
-
-function selectCtaMode(ctaMix: Record<string, number>, slotIndex: number): 'none' | 'soft' | 'direct' {
-  const modes: Array<'none' | 'soft' | 'direct'> = ['none', 'soft', 'direct'];
-  return modes[slotIndex % modes.length] ?? 'soft';
-}
 
 export async function planDay(date: string): Promise<{
   planned: number;
@@ -87,7 +68,7 @@ export async function planDay(date: string): Promise<{
     return { planned, scheduled, fallbacks };
   }
 
-  // 2. Load knowledge and prompts
+  // 2. Load knowledge and runtime prompts
   const [brand, product, claims, voice, audience] = await Promise.all([
     read('knowledge/brand.md'),
     read('knowledge/product.md'),
@@ -96,8 +77,7 @@ export async function planDay(date: string): Promise<{
     read('knowledge/audience.md'),
   ]);
 
-  const [plannerPrompt, writerPrompt, criticPrompt, researchPrompt, visualPrompt, imagePrompt] = await Promise.all([
-    read('prompts/planner.md'),
+  const [writerPrompt, criticPrompt, researchPrompt, visualPrompt, imagePrompt] = await Promise.all([
     read('prompts/writer.md'),
     read('prompts/critic.md'),
     read('prompts/research.md'),
@@ -105,12 +85,25 @@ export async function planDay(date: string): Promise<{
     read('prompts/image-prompt.md'),
   ]);
 
+  // 3. Query rolling history for convergence and cooldowns
+  const recentArchetypes = await repo.getRecentArchetypes(date, 30);
+  const recentCtaModes = await repo.getRecentCtaModes(date, 30);
+  const recentVisualConcepts = await repo.getRecentVisualConcepts(date, config.media.visualConceptCooldownDays);
+
+  const chosenArchetypesThisRun: string[] = [];
+  const chosenCtaModesThisRun: Array<'none' | 'soft' | 'direct'> = [];
+  const usedConceptsThisRun = new Set<string>(recentVisualConcepts);
+  const usedAssetIdsThisRun = new Set<string>();
+
   const maxSlotsNeeded = Math.max(neededSlots.facebook, neededSlots.instagram, neededSlots.threads);
 
   for (let slot = 0; slot < maxSlotsNeeded; slot++) {
-    const archetype = selectArchetype(config.contentMix, slot);
+    const archetype = selectArchetype(config.contentMix, recentArchetypes, chosenArchetypesThisRun);
+    chosenArchetypesThisRun.push(archetype);
+
     const topic = archetypeTopics[archetype] ?? archetypeTopics.pain_point!;
-    const ctaMode = selectCtaMode(config.cta, slot);
+    const ctaMode = selectCtaMode(config.cta, recentCtaModes, chosenCtaModesThisRun);
+    chosenCtaModesThisRun.push(ctaMode);
 
     let research: ResearchSnapshot;
     if (
@@ -140,18 +133,18 @@ export async function planDay(date: string): Promise<{
         research,
         provenance: {
           engineVersion: '0.1.0',
-          plannerPromptVersion: 'planner-v1',
           writerPromptVersion: 'writer-v1',
           criticPromptVersion: 'critic-v1',
           visualPromptVersion: 'visual-v1',
-          promptHash: sha256(
-            [plannerPrompt, writerPrompt, criticPrompt, researchPrompt, visualPrompt, imagePrompt].join('\n')
-          ),
+          researchPromptVersion: 'research-v1',
+          imagePromptVersion: 'image-v1',
+          promptHash: sha256([writerPrompt, criticPrompt, researchPrompt, visualPrompt, imagePrompt].join('\n')),
           configVersion: config.version,
           configHash: sha256(JSON.stringify(config)),
           knowledgeHash: sha256(brand + product + claims + voice + audience),
           textModel: config.models.text,
           imageModel: config.models.image,
+          ctaMode,
           generationTimestamp: new Date().toISOString(),
         },
       });
@@ -167,6 +160,7 @@ export async function planDay(date: string): Promise<{
       voice,
       audience,
       writerPrompt,
+      visualPlannerPrompt: visualPrompt,
       ctaMode,
       model: config.models.text,
     });
@@ -195,7 +189,9 @@ export async function planDay(date: string): Promise<{
               platform,
               [variant.visualConcept],
               config.media.exactAssetCooldownDays,
-              config.media.visualConceptCooldownDays
+              config.media.visualConceptCooldownDays,
+              Array.from(usedConceptsThisRun),
+              usedAssetIdsThisRun
             )
           : undefined;
 
@@ -218,6 +214,13 @@ export async function planDay(date: string): Promise<{
           } catch {
             fallbacks++;
           }
+        }
+      }
+
+      if (asset) {
+        usedAssetIdsThisRun.add(asset.id);
+        if (asset.concept) {
+          usedConceptsThisRun.add(asset.concept);
         }
       }
 
@@ -258,4 +261,3 @@ export async function planDay(date: string): Promise<{
 
   return { planned, scheduled, fallbacks };
 }
-

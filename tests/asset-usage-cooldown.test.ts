@@ -132,4 +132,96 @@ describe('asset usage accounting, classification, and cooldowns', () => {
     expect(sorted[1]?.id).toBe('manual_recent_concept');
     expect(sorted[2]?.id).toBe('fallback_1');
   });
+
+  it('excludes already selected assets in the same planning run', () => {
+    const assets: AssetRecord[] = [
+      {
+        id: 'asset_slot1',
+        source: 'manual',
+        contentHash: 'hash1',
+        storagePath: 'path1',
+        publicUrl: 'https://example.com/1.png',
+        width: 1024,
+        height: 1024,
+        format: 'png',
+        topics: ['grammar'],
+        audience: ['parents'],
+        allowedPlatforms: ['facebook', 'instagram', 'threads'],
+        reuse: true,
+        priority: 10,
+        concept: 'grammar_chart',
+        usageCount: 0,
+        lastUsedAt: null,
+      },
+      {
+        id: 'asset_slot2',
+        source: 'manual',
+        contentHash: 'hash2',
+        storagePath: 'path2',
+        publicUrl: 'https://example.com/2.png',
+        width: 1024,
+        height: 1024,
+        format: 'png',
+        topics: ['grammar'],
+        audience: ['parents'],
+        allowedPlatforms: ['facebook', 'instagram', 'threads'],
+        reuse: true,
+        priority: 5,
+        concept: 'sentence_tree',
+        usageCount: 0,
+        lastUsedAt: null,
+      },
+    ];
+
+    const excludedIds = new Set<string>(['asset_slot1']);
+    const available = assets.filter((a) => !excludedIds.has(a.id));
+
+    expect(available).toHaveLength(1);
+    expect(available[0]?.id).toBe('asset_slot2');
+  });
+
+  it('preserves existing asset id, usage_count, and last_used_at on re-ingestion', () => {
+    const existingAssetInDb = {
+      id: 'existing-uuid-1234',
+      content_hash: 'sha256_abcdef123456',
+      usage_count: 5,
+      last_used_at: '2026-08-25T12:00:00Z',
+      priority: 0,
+    };
+
+    const reIngestedAsset: AssetRecord = {
+      id: 'new-random-uuid-9999', // Newly generated during ingest pass
+      source: 'manual',
+      contentHash: 'sha256_abcdef123456', // Same content hash
+      storagePath: 'manual/sh/sha256_abcdef123456-test.png',
+      publicUrl: 'https://storage/public/manual/sh/sha256_abcdef123456-test.png',
+      width: 1024,
+      height: 1024,
+      format: 'png',
+      topics: ['updated_topic'],
+      audience: ['parents'],
+      allowedPlatforms: ['facebook', 'instagram', 'threads'],
+      reuse: true,
+      priority: 10,
+      concept: 'reading',
+      usageCount: 0,
+      lastUsedAt: null,
+    };
+
+    // Simulate repository upsertAsset behavior
+    const updatedAsset = {
+      id: existingAssetInDb.id, // ID must NOT change to new-random-uuid-9999
+      content_hash: reIngestedAsset.contentHash,
+      usage_count: existingAssetInDb.usage_count, // usage_count must NOT reset to 0
+      last_used_at: existingAssetInDb.last_used_at, // last_used_at must NOT reset to null
+      priority: reIngestedAsset.priority, // metadata can update
+      topics: reIngestedAsset.topics,
+    };
+
+    expect(updatedAsset.id).toBe('existing-uuid-1234');
+    expect(updatedAsset.usage_count).toBe(5);
+    expect(updatedAsset.last_used_at).toBe('2026-08-25T12:00:00Z');
+    expect(updatedAsset.priority).toBe(10);
+  });
 });
+

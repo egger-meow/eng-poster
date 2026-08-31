@@ -193,5 +193,36 @@ describe('platform publishers with mocked Meta API endpoints', () => {
     expect(health.accountId).toBe('page_123');
     expect(health.grantedScopes).toEqual(['pages_show_list', 'pages_read_engagement', 'pages_manage_posts']);
     expect(health.expiresAt).toBeTruthy();
+    expect(health.diagnostic).toContain('scopes: [pages_show_list, pages_read_engagement, pages_manage_posts]');
+  });
+
+  it('reports empty scopes and uninspected status when debug_token is unavailable', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/me?fields=id,username,threads_profile_picture_url')) {
+        return new Response(JSON.stringify({ id: 'threads_user_789', username: 'paperenglish' }), { status: 200 });
+      }
+      if (url.includes('/me?fields=id,username,account_type')) {
+        return new Response(JSON.stringify({ id: 'ig_user_456', username: 'paperenglish' }), { status: 200 });
+      }
+      // Debug token endpoint fails / unavailable
+      if (url.includes('/debug_token')) {
+        return new Response('Not Found', { status: 404 });
+      }
+      return new Response('{}', { status: 404 });
+    });
+    globalThis.fetch = fetchMock;
+
+    const th = new ThreadsPublisher();
+    const thHealth = await th.validateCredentials();
+    expect(thHealth.valid).toBe(true);
+    expect(thHealth.grantedScopes).toEqual([]); // NEVER fabricated!
+    expect(thHealth.diagnostic).toContain('[scopes: uninspected]');
+
+    const ig = new InstagramPublisher();
+    const igHealth = await ig.validateCredentials();
+    expect(igHealth.valid).toBe(true);
+    expect(igHealth.grantedScopes).toEqual([]); // NEVER fabricated!
+    expect(igHealth.diagnostic).toContain('[scopes: uninspected]');
   });
 });
+

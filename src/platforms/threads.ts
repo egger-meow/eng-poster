@@ -26,7 +26,7 @@ export class ThreadsPublisher extends BasePublisher {
     );
 
     const valid = me.id === expected;
-    let grantedScopes: string[] = ['threads_basic', 'threads_content_publish'];
+    let grantedScopes: string[] = [];
     let expiresAt: string | undefined = undefined;
 
     try {
@@ -43,14 +43,16 @@ export class ThreadsPublisher extends BasePublisher {
       // Debug token endpoint is optional if not supported on Threads endpoint
     }
 
+    const scopeStatus = grantedScopes.length > 0 ? `scopes: [${grantedScopes.join(', ')}]` : 'scopes: uninspected';
     return {
       platform: 'threads',
       valid,
       accountId: me.id,
       grantedScopes,
       expiresAt: expiresAt ?? null,
-      diagnostic: `Threads identity: @${me.username ?? me.id} (${me.id})${expiresAt ? ` (expires: ${expiresAt})` : ''}`,
+      diagnostic: `Threads identity: @${me.username ?? me.id} (${me.id})${expiresAt ? ` (expires: ${expiresAt})` : ''} [${scopeStatus}]`,
     };
+
 
   }
 

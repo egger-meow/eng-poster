@@ -1,5 +1,7 @@
+import { DateTime } from 'luxon';
 import type { AssetRecord, Platform, PreparedPost, ResearchSnapshot, TokenHealth } from '../types.js';
 import { getSupabase } from './client.js';
+
 
 function checked<T>(data: T | null, error: { message: string } | null): T {
   if (error) throw new Error(error.message);
@@ -159,28 +161,115 @@ export class MarketingRepository {
   }
 
   async upsertAsset(asset: AssetRecord): Promise<void> {
-    const { error } = await this.db.from('marketing_assets').upsert(
-      {
-        id: asset.id,
-        source: asset.source,
-        content_hash: asset.contentHash,
-        storage_path: asset.storagePath,
-        public_url: asset.publicUrl,
-        width: asset.width,
-        height: asset.height,
-        format: asset.format,
-        topics: asset.topics,
-        audience: asset.audience,
-        allowed_platforms: asset.allowedPlatforms,
-        reuse: asset.reuse,
-        priority: asset.priority,
-        concept: asset.concept ?? null,
-        expires_at: asset.expiresAt ?? null,
-      },
-      { onConflict: 'content_hash' }
-    );
+    const { data: existing } = await this.db
+      .from('marketing_assets')
+      .select('id, usage_count, last_used_at')
+      .eq('content_hash', asset.contentHash)
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await this.db
+        .from('marketing_assets')
+        .update({
+          source: asset.source,
+          storage_path: asset.storagePath,
+          public_url: asset.publicUrl,
+          width: asset.width,
+          height: asset.height,
+          format: asset.format,
+          topics: asset.topics,
+          audience: asset.audience,
+          allowed_platforms: asset.allowedPlatforms,
+          reuse: asset.reuse,
+          priority: asset.priority,
+          concept: asset.concept ?? null,
+          expires_at: asset.expiresAt ?? null,
+        })
+        .eq('id', existing.id);
+      checked(true, error);
+      return;
+    }
+
+    const { error } = await this.db.from('marketing_assets').insert({
+      id: asset.id,
+      source: asset.source,
+      content_hash: asset.contentHash,
+      storage_path: asset.storagePath,
+      public_url: asset.publicUrl,
+      width: asset.width,
+      height: asset.height,
+      format: asset.format,
+      topics: asset.topics,
+      audience: asset.audience,
+      allowed_platforms: asset.allowedPlatforms,
+      reuse: asset.reuse,
+      priority: asset.priority,
+      concept: asset.concept ?? null,
+      expires_at: asset.expiresAt ?? null,
+      usage_count: asset.usageCount ?? 0,
+      last_used_at: asset.lastUsedAt ?? null,
+    });
     checked(true, error);
   }
+
+  async getRecentArchetypes(beforeDate: string, days = 30): Promise<string[]> {
+    const startDate = DateTime.fromISO(beforeDate).minus({ days }).toISODate()!;
+    const { data, error } = await this.db
+      .from('marketing_content_plans')
+      .select('archetype')
+      .lt('plan_date', beforeDate)
+      .gte('plan_date', startDate)
+      .order('plan_date', { ascending: true })
+      .order('created_at', { ascending: true });
+
+    const raw = checked(data, error) ?? [];
+    return raw.map((r: any) => r.archetype).filter(Boolean);
+  }
+
+  async getRecentCtaModes(beforeDate: string, days = 30): Promise<Array<'none' | 'soft' | 'direct'>> {
+    const startDate = DateTime.fromISO(beforeDate).minus({ days }).toISODate()!;
+    const { data, error } = await this.db
+      .from('marketing_content_plans')
+      .select('provenance')
+      .lt('plan_date', beforeDate)
+      .gte('plan_date', startDate)
+      .order('plan_date', { ascending: true })
+      .order('created_at', { ascending: true });
+
+    const raw = checked(data, error) ?? [];
+    const modes: Array<'none' | 'soft' | 'direct'> = [];
+    for (const r of raw) {
+      const mode = r.provenance?.ctaMode;
+      if (mode === 'none' || mode === 'soft' || mode === 'direct') {
+        modes.push(mode);
+      }
+    }
+    return modes;
+  }
+
+  async getRecentVisualConcepts(beforeDate: string, days = 7): Promise<string[]> {
+    const startDate = DateTime.fromISO(beforeDate).minus({ days }).toISO()!;
+    const { data: posts, error: postErr } = await this.db
+      .from('marketing_posts')
+      .select('media_asset_id')
+      .lt('scheduled_for', beforeDate)
+      .gte('scheduled_for', startDate)
+      .not('media_asset_id', 'is', null);
+
+    const postRows = checked(posts, postErr) ?? [];
+    const assetIds = postRows.map((p: any) => p.media_asset_id).filter(Boolean);
+    if (assetIds.length === 0) return [];
+
+    const { data: assets, error: assetErr } = await this.db
+      .from('marketing_assets')
+      .select('concept')
+      .in('id', assetIds)
+      .not('concept', 'is', null);
+
+    const assetRows = checked(assets, assetErr) ?? [];
+    return assetRows.map((a: any) => a.concept).filter(Boolean);
+  }
+
 
   async availableAssets(
     platform: Platform,

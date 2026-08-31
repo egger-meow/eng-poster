@@ -56,14 +56,16 @@ export class FacebookPublisher extends BasePublisher {
       }
     }
 
+    const scopeStatus = grantedScopes.length > 0 ? `scopes: [${grantedScopes.join(', ')}]` : 'scopes: uninspected';
     return {
       platform: 'facebook',
       valid: body.id === id,
       accountId: body.id,
       grantedScopes,
       expiresAt: expiresAt ?? null,
-      diagnostic: `Page identity: ${body.name ?? body.id} (${body.id})${expiresAt ? ` (expires: ${expiresAt})` : ''}`,
+      diagnostic: `Page identity: ${body.name ?? body.id} (${body.id})${expiresAt ? ` (expires: ${expiresAt})` : ''} [${scopeStatus}]`,
     };
+
 
   }
 

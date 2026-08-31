@@ -21,10 +21,12 @@ export interface GenerateVariantsInput {
   voice: string;
   audience?: string;
   writerPrompt?: string;
+  visualPlannerPrompt?: string;
   ctaMode?: 'none' | 'soft' | 'direct';
   model: string;
   examples?: Partial<Record<Platform, string[]>>;
 }
+
 
 const schema = {
   type: 'object',
@@ -79,6 +81,8 @@ async function loadPlatformExamples(platform: Platform, maxCount = 3): Promise<s
 
 export async function generateVariants(input: GenerateVariantsInput): Promise<GeneratedVariant[]> {
   const writerPrompt = input.writerPrompt ?? (await readFile('prompts/writer.md', 'utf8').catch(() => ''));
+  const visualPlannerPrompt =
+    input.visualPlannerPrompt ?? (await readFile('prompts/visual-planner.md', 'utf8').catch(() => ''));
   const audience = input.audience ?? (await readFile('knowledge/audience.md', 'utf8').catch(() => ''));
 
   const fbExamples = input.examples?.facebook ?? (await loadPlatformExamples('facebook'));
@@ -87,6 +91,8 @@ export async function generateVariants(input: GenerateVariantsInput): Promise<Ge
 
   const instructions = [
     writerPrompt,
+    '\n## VISUAL PLANNING INSTRUCTIONS',
+    visualPlannerPrompt,
     '\n## BRAND VOICE & CONSTRAINTS',
     input.voice,
     '\n## TARGET AUDIENCE',
@@ -105,6 +111,7 @@ export async function generateVariants(input: GenerateVariantsInput): Promise<Ge
   ]
     .filter(Boolean)
     .join('\n\n');
+
 
   const r = await structured<{ variants: GeneratedVariant[] }>({
     model: input.model,
