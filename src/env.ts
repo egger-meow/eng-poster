@@ -28,8 +28,8 @@ const schema = z.object({
   THREADS_ENABLED: boolDefaultFalse,
   PAPER_ENGLISH_BASE_URL: z
     .preprocess((v) => (typeof v === 'string' && v.trim() === '' ? 'https://paperbond.jjmowlab.com' : v), z.string().url().default('https://paperbond.jjmowlab.com')),
-  OPENAI_API_KEY: optionalString,
   SUPABASE_URL: optionalUrl,
+
   SUPABASE_SERVICE_ROLE_KEY: optionalString,
   FACEBOOK_PAGE_ID: optionalString,
   FACEBOOK_PAGE_ACCESS_TOKEN: optionalString,

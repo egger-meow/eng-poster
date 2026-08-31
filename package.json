@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "packageManager": "pnpm@10.15.1",
   "scripts": {
     "social": "tsx src/cli.ts",
@@ -19,7 +21,6 @@
     "commander": "14.0.1",
     "dotenv": "17.2.2",
     "luxon": "3.7.2",
-    "openai": "5.20.3",
     "sharp": "0.34.3",
     "yaml": "2.8.1",
     "zod": "4.1.5"

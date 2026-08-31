@@ -20,9 +20,6 @@ importers:
       luxon:
         specifier: 3.7.2
         version: 3.7.2
-      openai:
-        specifier: 5.20.3
-        version: 5.20.3(ws@8.21.3)(zod@4.1.5)
       sharp:
         specifier: 0.34.3
         version: 0.34.3
@@ -1181,18 +1178,6 @@ packages:
 
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
-
-  openai@5.20.3:
-    resolution: {integrity: sha512-8V0KgAcPFppDIP8uMBOkhRrhDBuxNQYQxb9IovP4NN4VyaYGISAzYexyYYuAwVul2HB75Wpib0xDboYJqRMNow==}
-    hasBin: true
-    peerDependencies:
-      ws: ^8.18.0
-      zod: ^3.23.8
-    peerDependenciesMeta:
-      ws:
-        optional: true
-      zod:
-        optional: true
 
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
@@ -2470,11 +2455,6 @@ snapshots:
   nanoid@3.3.18: {}
 
   natural-compare@1.4.0: {}
-
-  openai@5.20.3(ws@8.21.3)(zod@4.1.5):
-    optionalDependencies:
-      ws: 8.21.3
-      zod: 4.1.5
 
   optionator@0.9.4:
     dependencies:

@@ -34,11 +34,12 @@ The goal is not "post every day". The goal is a durable organic distribution mac
 - Node.js 22+
 - pnpm
 - ESM
-- GitHub Actions for scheduling and manual runs
+- GitHub Actions for cron dispatching (every 30m), token health (daily), and queue monitoring
 - Supabase for durable job state and public marketing-media storage
-- OpenAI Responses API for research + planning + writing
-- OpenAI Image API as the default AI image provider
-- Provider interfaces must remain replaceable so another text/image provider can be added later without changing orchestration.
+- External ChatGPT Scheduled Tasks as the autonomous research, writing, and planning brain
+- Ingestion contract (`enqueue-plan` and direct Supabase MCP writes) with deterministic validation gates
+- No production runtime LLM dependencies inside the repository
+
 
 ### 2.2 Platform accounts are independent
 

@@ -11,9 +11,9 @@ Already expected:
 - one Facebook Page for 紙屬英文;
 - one Instagram Professional account for 紙屬英文;
 - one usable Threads profile for 紙屬英文 branding;
-- one OpenAI API account/project;
+- access to ChatGPT (with Scheduled Tasks or Custom GPTs enabled);
 - one GitHub repository;
-- access to the Paper English Supabase project (or a dedicated Supabase project if you intentionally choose one later).
+- access to the Paper English Supabase project.
 
 The three Meta identities may be separate.
 
@@ -27,29 +27,12 @@ Recommended visibility: private initially.
 
 Do not add real `.env` values during repo creation.
 
-## 2. OpenAI API
+## 2. Planning and Research Architecture (ChatGPT Scheduler)
 
-Official console:
+This repository contains **zero runtime LLM calls**. Autonomous research, topic discovery, brand-aligned authoring, and planning are performed by a **ChatGPT Scheduled Task** using the master prompt in [docs/CHATGPT_SCHEDULER_PROMPT.md](file:///c:/IDEA/eng-poster/docs/CHATGPT_SCHEDULER_PROMPT.md).
 
-https://platform.openai.com/
+See [docs/SCHEDULER_SETUP.md](file:///c:/IDEA/eng-poster/docs/SCHEDULER_SETUP.md) for full configuration steps.
 
-Create a project/API key dedicated to this social engine when practical.
-
-Store:
-
-```env
-OPENAI_API_KEY=...
-```
-
-The engine uses:
-
-- Responses API + hosted `web_search` for research;
-- text generation/structured outputs for planning/writing/critique;
-- Image API for AI-generated visuals.
-
-As of 2026-08-31, OpenAI documents `gpt-image-2` as the latest GPT Image generation model. Keep the model configurable because models change.
-
-OpenAI may require API Organization Verification for GPT Image model access. Complete it in the developer console if the API reports that requirement.
 
 ## 3. Meta Developer setup — important distinction
 
@@ -247,11 +230,11 @@ THREADS_ENABLED (true/false)
 ### Repository Secrets (Settings → Secrets)
 Add the sensitive production credentials:
 ```text
-OPENAI_API_KEY
 SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
 FACEBOOK_PAGE_ID
 FACEBOOK_PAGE_ACCESS_TOKEN
+
 INSTAGRAM_USER_ID
 INSTAGRAM_ACCESS_TOKEN
 INSTAGRAM_APP_ID

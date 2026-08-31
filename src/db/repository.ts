@@ -270,6 +270,21 @@ export class MarketingRepository {
     return assetRows.map((a: any) => a.concept).filter(Boolean);
   }
 
+  async getNextScheduledPost(fromIso: string): Promise<string | null> {
+    const { data, error } = await this.db
+      .from('marketing_posts')
+      .select('scheduled_for')
+      .in('status', ['scheduled', 'claimed'])
+      .gte('scheduled_for', fromIso)
+      .order('scheduled_for', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    const row = checked(data, error);
+    return row?.scheduled_for ?? null;
+  }
+
+
 
   async availableAssets(
     platform: Platform,

@@ -8,11 +8,13 @@ export async function selectAsset(
   exactCooldownDays: number,
   visualConceptCooldownDays = 7,
   recentConcepts: string[] = [],
-  excludedAssetIds: Set<string> | string[] = []
+  excludedAssetIds: Set<string> | string[] = [],
+  repo = new MarketingRepository()
 ): Promise<AssetRecord | undefined> {
   const cooldownStart = DateTime.utc().minus({ days: exactCooldownDays }).toISO()!;
-  const assets = await new MarketingRepository().availableAssets(platform, cooldownStart);
+  const assets = await repo.availableAssets(platform, cooldownStart);
   if (assets.length === 0) return undefined;
+
 
   const excluded = excludedAssetIds instanceof Set ? excludedAssetIds : new Set(excludedAssetIds);
   const conceptCooldownActive = visualConceptCooldownDays > 0;

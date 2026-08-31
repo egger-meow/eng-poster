@@ -1,16 +1,18 @@
 # Paper English Social Engine
 
-Automated organic-social research, writing, media selection, scheduling, and publishing for 紙屬英文 on an independent Facebook Page, Instagram Professional account, and Threads profile.
+Organic-social infrastructure, scheduling validation, asset management, and publishing for 紙屬英文 on Facebook, Instagram, and Threads.
 
-The engine is safe by default: `.env.example` starts in dry-run/global-pause mode, every Paper English URL gets platform-specific UTM attribution, current claims require stored sources, and live smoke publishing needs both `DRY_RUN=false` and `--confirm-live`.
+The engine uses **ChatGPT Scheduled Tasks** as its autonomous research, topic discovery, and writing brain, while this repository provides hardened scheduling, claim verification, asset tracking, safety switches, and Meta publishing infrastructure.
+
+The engine is safe by default: `.env.example` starts in dry-run/global-pause mode, every Paper English URL gets platform-specific UTM attribution, researched claims require stored sources, and live smoke publishing needs both `DRY_RUN=false` and `--confirm-live`.
 
 ## Requirements
 
 - Node.js 22+
 - pnpm 10.15.1
-- Supabase project/CLI
-- OpenAI API key
-- independent Meta credentials described in [docs/MANUAL_SETUP.md](docs/MANUAL_SETUP.md)
+- Supabase project / CLI
+- ChatGPT with Scheduled Tasks or direct Supabase connection (see [docs/SCHEDULER_SETUP.md](docs/SCHEDULER_SETUP.md))
+- Independent Meta credentials described in [docs/MANUAL_SETUP.md](docs/MANUAL_SETUP.md)
 
 ## Local setup
 
@@ -23,35 +25,48 @@ supabase db reset
 pnpm social token-health
 pnpm social ingest-assets
 pnpm social dry-run --platform threads
-pnpm social plan-day --date 2026-08-31
+pnpm social queue-health
 ```
-
-`plan-day` performs hosted web research, creates independent platform copy, runs semantic and deterministic gates, selects media, and saves immutable scheduled records. `dispatch-due` only publishes due records; it never regenerates copy.
 
 ## Commands
 
 ```bash
-pnpm social plan-day --date YYYY-MM-DD
+# Ingest and validate a content plan from ChatGPT Scheduler
+pnpm social enqueue-plan --input payload.json
+
+# Check upcoming scheduled queue health
+pnpm social queue-health --hours 48
+
+# Dispatch due posts (runs every 30 mins in GitHub Actions)
 pnpm social dispatch-due
+
+# Validate Meta credentials and token expiry
 pnpm social token-health
+
+# Ingest local assets into Supabase storage and library
 pnpm social ingest-assets
+
+# Dry-run platform payload formatting
 pnpm social dry-run --platform <facebook|instagram|threads>
+
+# Explicit live smoke test
 pnpm social publish-test --platform <facebook|instagram|threads> --confirm-live
 ```
 
-The final command still refuses to publish while `DRY_RUN=true` or `PAUSE_ALL_POSTING=true`.
+The final command refuses to publish while `DRY_RUN=true` or `PAUSE_ALL_POSTING=true`.
 
 ## Production rollout
 
 1. Verify the knowledge files and add licensed public assets under `assets/manual/**`.
 2. Apply `supabase/migrations/20260831000000_marketing_engine.sql` to the intended project and run `pnpm verify:migration`.
-3. Configure every secret and repository variable from `.env.example`; set the currently supported Meta Graph API version explicitly in `META_GRAPH_VERSION` after checking Meta's current docs.
-4. Run `pnpm verify`, token health, asset ingestion, and a complete `plan-day` with the dispatcher paused.
-5. Inspect database plans, claims, copy, public media URLs, and UTM parameters.
+3. Configure secrets and repository variables from `.env.example`.
+4. Set up the ChatGPT Scheduled Task using [docs/CHATGPT_SCHEDULER_PROMPT.md](docs/CHATGPT_SCHEDULER_PROMPT.md) and [docs/SCHEDULER_SETUP.md](docs/SCHEDULER_SETUP.md).
+5. Run `pnpm verify`, token health, and asset ingestion.
 6. Follow the explicit one-post-per-platform smoke procedure in [docs/MANUAL_SETUP.md](docs/MANUAL_SETUP.md).
-7. Only after the smoke records contain platform IDs/URLs, enable the dispatcher variables.
+7. Enable the dispatcher in GitHub Actions.
 
-GitHub Actions provide CI, a daily planner at 00:15 Asia/Taipei, a 30-minute dispatcher, and daily token health. Scheduled workflows intentionally use Supabase rather than Git commits for runtime state.
+GitHub Actions provide CI, a 30-minute dispatcher (`dispatch.yml`), daily token health (`token-health.yml`), and daily queue health monitoring (`queue-health.yml`).
+
 
 ## Safety and failure behavior
 

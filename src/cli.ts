@@ -1,7 +1,10 @@
 #!/usr/bin/env node
+import { readFile } from 'node:fs/promises';
 import { Command } from 'commander';
+
 import { platforms, type Platform } from './types.js';
-import { planDay } from './orchestration/plan-day.js';
+import { enqueuePlan } from './orchestration/enqueue-plan.js';
+import { checkQueueHealth } from './orchestration/queue-health.js';
 import { dispatchDue } from './orchestration/dispatch-due.js';
 import { tokenHealth } from './orchestration/token-health.js';
 import { ingestAssets } from './media/ingest.js';
@@ -13,9 +16,26 @@ import { MarketingRepository } from './db/repository.js';
 const program = new Command().name('social').description('Paper English organic social engine');
 
 program
-  .command('plan-day')
-  .requiredOption('--date <YYYY-MM-DD>')
-  .action(async (o) => console.log(JSON.stringify(await planDay(o.date), null, 2)));
+  .command('enqueue-plan')
+  .requiredOption('--input <jsonOrPath>', 'JSON string or path to JSON file containing plan payload')
+  .action(async (o) => {
+    let raw = o.input;
+    try {
+      raw = await readFile(o.input, 'utf8');
+    } catch {
+      // Inline JSON string
+    }
+    const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    console.log(JSON.stringify(await enqueuePlan(data), null, 2));
+  });
+
+program
+  .command('queue-health')
+  .option('--hours <hours>', 'Hours ahead to inspect schedule', '48')
+  .action(async (o) => {
+    console.log(JSON.stringify(await checkQueueHealth(Number(o.hours)), null, 2));
+  });
+
 
 program
   .command('dispatch-due')
