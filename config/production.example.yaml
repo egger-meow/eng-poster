@@ -1,0 +1,66 @@
+timezone: Asia/Taipei
+version: v0
+websiteBaseUrl: https://paperbond.jjmowlab.com
+models:
+  text: gpt-5.6
+  image: gpt-image-2
+
+platforms:
+  threads:
+    enabled: true
+    postsPerDay: 2
+    windows:
+      - "11:30-13:30"
+      - "19:00-22:00"
+    hardDailyCap: 3
+  facebook:
+    enabled: true
+    postsPerWeek: 4
+    preferredDays: [tue, thu, sat, sun]
+    windows:
+      - "19:00-21:30"
+    hardDailyCap: 1
+  instagram:
+    enabled: true
+    postsPerWeek: 3
+    preferredDays: [mon, wed, fri]
+    windows:
+      - "19:00-21:30"
+    hardDailyCap: 1
+
+contentMix:
+  painPointOrOpinion: 0.35
+  educationalValue: 0.25
+  productProof: 0.20
+  timelyTopic: 0.10
+  conversion: 0.10
+
+cta:
+  none: 0.50
+  soft: 0.30
+  direct: 0.20
+
+research:
+  enabled: true
+  requireWebSearchForCurrentClaims: true
+  breakingFreshnessDays: 7
+  recentFreshnessDays: 30
+  maxDailyCalls: 20
+
+media:
+  aiGenerationEnabled: true
+  exactAssetCooldownDays: 30
+  visualConceptCooldownDays: 7
+  aiProvider: openai
+  aiModel: gpt-image-2
+  defaultQuality: low
+  maxGenerationAttempts: 2
+  maxDailyGenerations: 4
+
+retries:
+  maxPublishAttempts: 4
+  maxAuthoringRepairs: 1
+  leaseMinutes: 15
+
+utm:
+  medium: organic_social

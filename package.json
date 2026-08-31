@@ -1,0 +1,37 @@
+{
+  "name": "paper-english-social-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "packageManager": "pnpm@10.15.1",
+  "scripts": {
+    "social": "tsx src/cli.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json",
+    "verify:migration": "tsx scripts/verify-migration.ts",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm verify:migration"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.57.4",
+    "commander": "14.0.1",
+    "dotenv": "17.2.2",
+    "luxon": "3.7.2",
+    "openai": "5.20.3",
+    "sharp": "0.34.3",
+    "yaml": "2.8.1",
+    "zod": "4.1.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.35.0",
+    "@types/luxon": "3.7.1",
+    "@types/node": "24.3.0",
+    "eslint": "9.35.0",
+    "tsx": "4.20.5",
+    "typescript": "5.9.2",
+    "typescript-eslint": "8.42.0",
+    "vitest": "3.2.4"
+  }
+}

@@ -1,0 +1,24 @@
+import type { AssetRecord, Platform, PreparedPost, ResearchSnapshot, TokenHealth } from '../types.js';
+import { getSupabase } from './client.js';
+
+function checked<T>(data: T | null, error: { message: string } | null): T { if (error) throw new Error(error.message); return data as T; }
+export class MarketingRepository {
+  constructor(private readonly db = getSupabase()) {}
+  async createPlan(input: { planDate: string; archetype: string; topic: string; audience: string; campaignSlug: string; research: ResearchSnapshot; provenance: Record<string, unknown> }): Promise<string> {
+    const { data, error } = await this.db.from('marketing_content_plans').insert({ plan_date: input.planDate, archetype: input.archetype, topic: input.topic, audience: input.audience, campaign_slug: input.campaignSlug, research_snapshot: input.research, provenance: input.provenance }).select('id').single();
+    return checked(data, error).id as string;
+  }
+  async schedule(post: PreparedPost, contentHash: string): Promise<void> {
+    const { error } = await this.db.from('marketing_posts').upsert({ id: post.id, content_plan_id: post.contentPlanId, platform: post.platform, copy_text: post.copyText, destination_url: post.destinationUrl, media_asset_id: post.mediaAssetId, scheduled_for: post.scheduledFor, idempotency_key: post.idempotencyKey, content_hash: contentHash, claim_manifest: post.claimManifest }, { onConflict: 'idempotency_key', ignoreDuplicates: true });
+    checked(true, error);
+  }
+  async claimDue(limit: number, leaseMinutes: number): Promise<any[]> { const { data, error } = await this.db.rpc('claim_marketing_posts', { p_limit: limit, p_lease_minutes: leaseMinutes }); return checked(data, error) ?? []; }
+  async complete(postId: string, result: { platformPostId: string; platformPostUrl?: string }): Promise<void> { const { error } = await this.db.from('marketing_posts').update({ status: 'published', platform_post_id: result.platformPostId, platform_post_url: result.platformPostUrl ?? null, published_at: new Date().toISOString(), lease_token: null, lease_expires_at: null, last_error: null }).eq('id', postId).eq('status', 'claimed'); checked(true,error); }
+  async fail(postId: string, retryable: boolean, message: string): Promise<void> { const { error } = await this.db.from('marketing_posts').update({ status: retryable ? 'retryable_failed' : 'permanently_failed', last_error: message.slice(0,1000), lease_token: null }).eq('id',postId).eq('status','claimed'); checked(true,error); }
+  async recordAttempt(row: Record<string, unknown>): Promise<void> { const { error } = await this.db.from('marketing_publish_attempts').insert(row); checked(true,error); }
+  async recordHealth(health: TokenHealth): Promise<void> { const { error } = await this.db.from('marketing_token_health').insert({ platform: health.platform, valid: health.valid, expiry_timestamp: health.expiresAt ?? null, granted_scopes: health.grantedScopes, diagnostic_message: health.diagnostic }); checked(true,error); }
+  async upsertAsset(asset: AssetRecord): Promise<void> { const { error } = await this.db.from('marketing_assets').upsert({ id: asset.id, source: asset.source, content_hash: asset.contentHash, storage_path: asset.storagePath, public_url: asset.publicUrl, width: asset.width, height: asset.height, format: asset.format, topics: asset.topics, audience: asset.audience, allowed_platforms: asset.allowedPlatforms, reuse: asset.reuse, priority: asset.priority, concept: asset.concept ?? null, expires_at: asset.expiresAt ?? null }, { onConflict: 'content_hash' }); checked(true,error); }
+  async availableAssets(platform: Platform, cooldownStart: string): Promise<AssetRecord[]> { const { data,error } = await this.db.from('marketing_assets').select('*').contains('allowed_platforms',[platform]).or(`last_used_at.is.null,last_used_at.lt.${cooldownStart}`).or('expires_at.is.null,expires_at.gt.now()').order('priority',{ascending:false}); return (checked(data,error) ?? []).map((a:any)=>({id:a.id,source:a.source,contentHash:a.content_hash,storagePath:a.storage_path,publicUrl:a.public_url,width:a.width,height:a.height,format:a.format,topics:a.topics,audience:a.audience,allowedPlatforms:a.allowed_platforms,reuse:a.reuse,priority:a.priority,concept:a.concept,expiresAt:a.expires_at,usageCount:a.usage_count,lastUsedAt:a.last_used_at})); }
+  async assetUrl(id: string | null): Promise<string | null> { if (!id) return null; const { data,error }=await this.db.from('marketing_assets').select('public_url').eq('id',id).single(); return checked(data,error).public_url as string; }
+  async countPublished(platform: Platform, since: string): Promise<number> { const { count,error }=await this.db.from('marketing_posts').select('id',{count:'exact',head:true}).eq('platform',platform).gte('published_at',since); checked(true,error); return count ?? 0; }
+}

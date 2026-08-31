@@ -1,0 +1,20 @@
+name: Daily planner
+on:
+  schedule: [{ cron: '15 16 * * *' }]
+  workflow_dispatch: {}
+permissions: { contents: read }
+concurrency: { group: paper-english-planner, cancel-in-progress: false }
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm social plan-day --date "$(TZ=Asia/Taipei date +%F)"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

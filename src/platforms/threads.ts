@@ -1,0 +1,8 @@
+import { requireEnv } from '../env.js'; import type { PreparedPost, PublishResult, TokenHealth } from '../types.js'; import { BasePublisher } from './base.js';
+export function threadsContainerPayload(post:PreparedPost):URLSearchParams {const p=new URLSearchParams({media_type:post.mediaUrl?'IMAGE':'TEXT',text:post.copyText,access_token:requireEnv('THREADS_ACCESS_TOKEN')}); if(post.mediaUrl)p.set('image_url',post.mediaUrl); return p;}
+export class ThreadsPublisher extends BasePublisher {
+  private base(){return `https://graph.threads.net/${requireEnv('META_GRAPH_VERSION')}`;}
+  async validateCredentials():Promise<TokenHealth>{const expected=requireEnv('THREADS_USER_ID');const b=await this.request(`${this.base()}/me?fields=id,username&access_token=${encodeURIComponent(requireEnv('THREADS_ACCESS_TOKEN'))}`);return{platform:'threads',valid:b.id===expected,accountId:b.id,grantedScopes:['threads_basic','threads_content_publish'],diagnostic:`Threads identity: ${b.username??b.id}`};}
+  async publish(post:PreparedPost):Promise<PublishResult>{const c=await this.request(`${this.base()}/me/threads`,{method:'POST',body:threadsContainerPayload(post)});const b=await this.request(`${this.base()}/me/threads_publish`,{method:'POST',body:new URLSearchParams({creation_id:c.id,access_token:requireEnv('THREADS_ACCESS_TOKEN')})});return{platformPostId:b.id,platformPostUrl:`https://www.threads.net/@me/post/${b.id}`,rawSummary:{id:b.id,containerId:c.id}};}
+  async refreshToken():Promise<void>{await this.request(`https://graph.threads.net/refresh_access_token?grant_type=th_refresh_token&access_token=${encodeURIComponent(requireEnv('THREADS_ACCESS_TOKEN'))}`);}
+}

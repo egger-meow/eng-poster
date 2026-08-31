@@ -1,0 +1,2 @@
+import { describe,expect,it } from 'vitest'; import { readFileSync } from 'node:fs';
+describe('database lease contract',()=>{it('uses row locks, skip locked, and a unique idempotency key',()=>{const sql=readFileSync('supabase/migrations/20260831000000_marketing_engine.sql','utf8').toLowerCase();expect(sql).toContain('for update skip locked');expect(sql).toContain('idempotency_key text not null unique');expect(sql).toContain("status = 'claimed'");});});

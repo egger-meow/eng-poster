@@ -1,0 +1,30 @@
+name: Dispatcher
+on:
+  schedule: [{ cron: '*/30 * * * *' }]
+  workflow_dispatch: {}
+permissions: { contents: read }
+concurrency: { group: paper-english-dispatcher, cancel-in-progress: false }
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm social dispatch-due
+        env:
+          DRY_RUN: ${{ vars.DRY_RUN || 'true' }}
+          PAUSE_ALL_POSTING: ${{ vars.PAUSE_ALL_POSTING || 'true' }}
+          FACEBOOK_ENABLED: ${{ vars.FACEBOOK_ENABLED || 'false' }}
+          INSTAGRAM_ENABLED: ${{ vars.INSTAGRAM_ENABLED || 'false' }}
+          THREADS_ENABLED: ${{ vars.THREADS_ENABLED || 'false' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}

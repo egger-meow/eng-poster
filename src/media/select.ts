@@ -1,0 +1,3 @@
+import { DateTime } from 'luxon'; import { MarketingRepository } from '../db/repository.js'; import type { AssetRecord,Platform } from '../types.js';
+const rank={manual:0,screenshot:1,template:2,ai_generated:3,fallback:4};
+export async function selectAsset(platform:Platform,topics:string[],cooldownDays:number):Promise<AssetRecord|undefined>{const assets=await new MarketingRepository().availableAssets(platform,DateTime.utc().minus({days:cooldownDays}).toISO()!);return assets.sort((a,b)=>{const af=a.topics.filter(t=>topics.includes(t)).length,bf=b.topics.filter(t=>topics.includes(t)).length;return bf-af||rank[a.source]-rank[b.source]||b.priority-a.priority;})[0];}
