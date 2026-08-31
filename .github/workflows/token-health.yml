@@ -17,6 +17,7 @@ jobs:
           FACEBOOK_ENABLED: ${{ vars.FACEBOOK_ENABLED || 'false' }}
           INSTAGRAM_ENABLED: ${{ vars.INSTAGRAM_ENABLED || 'false' }}
           THREADS_ENABLED: ${{ vars.THREADS_ENABLED || 'false' }}
+          META_GRAPH_VERSION: ${{ vars.META_GRAPH_VERSION || 'v22.0' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}

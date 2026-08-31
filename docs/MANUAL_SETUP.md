@@ -229,17 +229,27 @@ Run credential health before a live smoke test:
 pnpm social token-health
 ```
 
-## 10. GitHub Actions secrets
+## 10. GitHub Actions variables and secrets
 
 GitHub repo → Settings → Secrets and variables → Actions.
 
-Add the same production secrets used locally:
+### Repository Variables (Settings → Variables)
+Configure non-secret configuration variables:
+```text
+META_GRAPH_VERSION (e.g. v22.0)
+DRY_RUN (true/false)
+PAUSE_ALL_POSTING (true/false)
+FACEBOOK_ENABLED (true/false)
+INSTAGRAM_ENABLED (true/false)
+THREADS_ENABLED (true/false)
+```
 
+### Repository Secrets (Settings → Secrets)
+Add the sensitive production credentials:
 ```text
 OPENAI_API_KEY
 SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
-META_GRAPH_VERSION
 FACEBOOK_PAGE_ID
 FACEBOOK_PAGE_ACCESS_TOKEN
 INSTAGRAM_USER_ID
@@ -252,7 +262,15 @@ THREADS_APP_ID
 THREADS_APP_SECRET
 ```
 
-If implementation introduces a genuinely required additional secret, add it to `.env.example` + this file in the same change. Never silently depend on an undocumented secret.
+### Threads Token Renewal Procedure
+Threads long-lived access tokens have a 60-day lifespan.
+The daily `token-health` workflow inspects credential validity and warns when expiration is approaching.
+To renew/refresh a Threads token before it expires:
+1. Re-authorize or exchange via the Meta App OAuth tool / Postman or execute the refresh endpoint:
+   `GET https://graph.threads.net/refresh_access_token?grant_type=th_refresh_token&access_token=<CURRENT_THREADS_ACCESS_TOKEN>`
+2. Update the `THREADS_ACCESS_TOKEN` secret in GitHub Actions Settings.
+3. Run `pnpm social token-health` to confirm the renewed token is valid.
+
 
 ## 11. GitHub Actions permissions
 

@@ -11,9 +11,24 @@ export interface PreparedPost {
   mediaUrl?: string | null; mediaAssetId?: string | null; scheduledFor: string; idempotencyKey: string;
   campaignSlug: string; claimManifest: Claim[];
 }
-export interface TokenHealth { platform: Platform; valid: boolean; accountId?: string; expiresAt?: string; grantedScopes: string[]; diagnostic: string }
-export interface ValidationResult { valid: boolean; errors: string[] }
-export interface PublishResult { platformPostId: string; platformPostUrl?: string; rawSummary: Record<string, unknown> }
+export interface TokenHealth {
+  platform: Platform;
+  valid: boolean;
+  accountId?: string | null;
+  expiresAt?: string | null;
+  grantedScopes: string[];
+  diagnostic: string;
+}
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+export interface PublishResult {
+  platformPostId: string;
+  platformPostUrl?: string | null;
+  rawSummary: Record<string, unknown>;
+}
+
 export interface SocialPublisher {
   validateCredentials(): Promise<TokenHealth>;
   validatePost(post: PreparedPost): Promise<ValidationResult>;

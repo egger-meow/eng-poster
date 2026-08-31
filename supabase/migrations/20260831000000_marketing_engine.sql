@@ -38,13 +38,17 @@ alter table public.marketing_posts enable row level security;
 alter table public.marketing_assets enable row level security;
 alter table public.marketing_publish_attempts enable row level security;
 alter table public.marketing_token_health enable row level security;
-revoke all on all tables in schema public from anon, authenticated;
+revoke all on table public.marketing_content_plans from anon, authenticated;
+revoke all on table public.marketing_posts from anon, authenticated;
+revoke all on table public.marketing_assets from anon, authenticated;
+revoke all on table public.marketing_publish_attempts from anon, authenticated;
+revoke all on table public.marketing_token_health from anon, authenticated;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('marketing-media', 'marketing-media', true, 10485760, array['image/png','image/jpeg','image/webp'])
 on conflict (id) do update set public = excluded.public, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 
-create or replace function public.claim_marketing_posts(p_limit integer default 10, p_lease_minutes integer default 15)
+create or replace function public.claim_marketing_posts(p_limit integer default 10, p_lease_minutes integer default 15, p_platforms text[] default null)
 returns setof public.marketing_posts
 language plpgsql security invoker set search_path = '' as $$
 begin
@@ -53,11 +57,13 @@ begin
     select p.id from public.marketing_posts p
     where p.scheduled_for <= now()
       and (p.status = 'scheduled' or (p.status = 'retryable_failed' and (p.lease_expires_at is null or p.lease_expires_at < now())))
+      and (p_platforms is null or p.platform = any(p_platforms))
     order by p.scheduled_for for update skip locked limit greatest(1, least(p_limit, 100))
   )
   update public.marketing_posts p set status = 'claimed', lease_token = gen_random_uuid(),
     lease_expires_at = now() + make_interval(mins => p_lease_minutes), attempt_count = attempt_count + 1, updated_at = now()
   from due where p.id = due.id returning p.*;
 end $$;
-revoke all on function public.claim_marketing_posts(integer, integer) from public, anon, authenticated;
-grant execute on function public.claim_marketing_posts(integer, integer) to service_role;
+revoke all on function public.claim_marketing_posts(integer, integer, text[]) from public, anon, authenticated;
+grant execute on function public.claim_marketing_posts(integer, integer, text[]) to service_role;
+
