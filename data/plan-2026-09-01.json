@@ -1,0 +1,162 @@
+{
+  "planDate": "2026-09-01",
+  "source": "chatgpt_scheduler",
+  "archetype": "pain_point",
+  "topic": "開學第一週國中英文斷層與死背焦慮",
+  "audience": "Taiwan parents grade 5-8",
+  "campaignSlug": "always-on",
+  "researchSnapshot": {
+    "query": "國中會考 英語 待加強 雙峰 心測中心 國小升國中 英文銜接 閱讀斷層",
+    "sources": [
+      {
+        "url": "https://cap.rcpet.edu.tw",
+        "title": "國立臺灣師範大學心理與教育測驗研究發展中心 — 國中教育會考",
+        "retrievedAt": "2026-09-01T07:30:00Z",
+        "notes": [
+          "國中教育會考英語科成績由閱讀（80%）與聽力（20%）加權計算",
+          "英語科待加強（C等級）比例歷年居各考科之冠，平均接近三成（約 29%）"
+        ]
+      },
+      {
+        "url": "https://www.cirn.moe.edu.tw",
+        "title": "教育部國民中小學課程與教學資源整合平台 — 108課綱英語文課程綱要",
+        "retrievedAt": "2026-09-01T07:30:00Z",
+        "notes": [
+          "國小至國中英語文領域學習重點轉向長篇閱讀素養與跨領域情境理解",
+          "重視語境理解而非孤立單字背誦"
+        ]
+      },
+      {
+        "url": "https://paperbond.jjmowlab.com",
+        "title": "紙屬英文 Paper English 官方網站",
+        "retrievedAt": "2026-09-01T07:30:00Z",
+        "notes": [
+          "紙屬英文每週客製一份專屬紙本教材，依孩子興趣、程度與學習狀況動態調整",
+          "主打回到紙本學習，減少 3C 螢幕與通知干擾"
+        ]
+      }
+    ],
+    "factualNotes": [
+      "國中教育會考英語科待加強（C等級）比例歷年常態接近 29%~30%，為各考科最高",
+      "會考英語科整體計分以閱讀測驗為大宗（佔 80%），重長文閱讀理解與情境推論而非死記單字",
+      "國小升國中面臨單字量、文法複雜度與評量方式的顯著斷層",
+      "紙屬英文提供每週一份客製化紙本英文教材，依孩子興趣與程度動態編排"
+    ]
+  },
+  "provenance": {
+    "schedulerPromptVersion": "v1.0",
+    "generationTimestamp": "2026-09-01T07:35:00Z"
+  },
+  "posts": [
+    {
+      "platform": "threads",
+      "requestedWindow": "16:30-18:30",
+      "copyText": "開學第一天，很多國中生就已經在被罰抄英文單字了。\n\n我每次看到家長逼小孩一天吞 30 個單字卡，就覺得心酸又浪費時間。\n單字背得再熟，放到會考題本的長篇閱讀裡，小孩還是一臉茫然：每個字都看過，連成一句就看不懂。\n\n因為大腦根本不記沒有情感連結的代碼。\n背單字不是打卡上班。如果不把字放在他感興趣的句子裡、讓他親手在紙上劃掉、理解脈絡，他背得越痛苦，放棄得越快。\n\n英文從來不是背出來的，是被讀進去的。",
+      "claimManifest": [
+        {
+          "text": "國中會考英文以長篇閱讀理解為主",
+          "kind": "researched_fact",
+          "sourceUrls": [
+            "https://cap.rcpet.edu.tw"
+          ]
+        },
+        {
+          "text": "開學第一天很多國中生面臨背單字與罰抄壓力",
+          "kind": "rhetorical",
+          "sourceUrls": []
+        },
+        {
+          "text": "孤立死背單字缺乏情境脈絡容易造成挫折與閱讀困難",
+          "kind": "opinion",
+          "sourceUrls": []
+        }
+      ],
+      "ctaMode": "none"
+    },
+    {
+      "platform": "threads",
+      "requestedWindow": "19:00-22:00",
+      "copyText": "你知道會考所有科目裡，「待加強（C等級）」比例最高的是哪一科嗎？\n\n是英文。每三個人就有一個人連基礎門檻都過不了（將近 30%）。\n\n但更殘忍的現實是：這群拿 C 的孩子，很多從小學就在補習班耗時間。\n補了三年，最後死在長篇閱讀。\n\n問題根本不在時數，在「輸入的內容有多無聊」。\n小孩每天打電動、看動漫可以看一萬字攻略，看到英文課本兩行就開始恍神。\n你如果連他對什麼有興趣都不知道，塞再多題本給他也只是在自我安慰。\n\n想讓孩子主動碰英文，先給他一篇他真的想知道結局的故事。\n紙屬英文首週體驗：paperbond.jjmowlab.com",
+      "claimManifest": [
+        {
+          "text": "國中會考英文科待加強（C等級）比例接近三成，為各科最高",
+          "kind": "researched_fact",
+          "sourceUrls": [
+            "https://cap.rcpet.edu.tw"
+          ]
+        },
+        {
+          "text": "許多投入補習時間的學生在長篇閱讀測驗受挫",
+          "kind": "opinion",
+          "sourceUrls": []
+        },
+        {
+          "text": "紙屬英文提供首週教材體驗與官網說明",
+          "kind": "brand_fact",
+          "sourceUrls": [
+            "https://paperbond.jjmowlab.com"
+          ]
+        }
+      ],
+      "ctaMode": "soft",
+      "destinationUrl": "https://paperbond.jjmowlab.com"
+    },
+    {
+      "platform": "facebook",
+      "requestedWindow": "19:00-21:30",
+      "copyText": "【開學第一週：為什麼國小英文考 95 分，升國中第一次段考直接崩盤？】\n\n每年 9 月剛開學，我就會收到一堆焦慮爸媽的私訊：\n「老師，我家小孩小學英文每次都拿優等、考 90 幾分，怎麼升上國中課本一翻開，連文法題目都看不懂？」\n\n這不是孩子突然變笨，而是國小與國中的英文「根本是兩種完全不同的遊戲規則」。\n\n國小英文重在情境對話與日常聽說，考試考的是直覺；\n但國中會考與段考，閱讀測驗佔比直接飆到 80%，單字量翻倍，文法更開始要求嚴謹的句型結構與長篇推論。\n\n很多家長一緊張，反射動作就是「送補習班」或「買厚厚一本單字書逼他背」。\n結果往往是：\n❌ 每天背 20 個孤立單字，隔天忘 18 個\n❌ 盯著平板或電腦寫題庫，五分鐘後切換去按 IG 和 YouTube\n❌ 挫折感越來越重，國二直接放棄英文\n\n想打破這個惡性循環，只要做對三件事：\n\n1️⃣ 停止孤立背單字：把單字嵌進有上下文的段落裡，大腦才會有「情境記憶」。\n2️⃣ 回歸紙本手寫：學習要回到紙上。印出來、拿起鉛筆圈出主詞動詞，少一份 3C 通知干擾，專注力至少多維持半小時。\n3️⃣ 從孩子的真實興趣切入：他喜歡 Minecraft、籃球、烘焙還是動漫？拿他本來就想看的題材當載體，英文才不會像苦役。\n\n「紙屬英文」每週為國小高年級與國中生客製一份專屬紙本教材：\n根據孩子的興趣、學校進度與上週作答表現動態調整，把會考必考的單字文法，寫進他真正想讀的世界裡。\n\n讓孩子這學期不再討厭英文。\n👉 立即查看每週專屬教材與首週體驗：\nhttps://paperbond.jjmowlab.com",
+      "claimManifest": [
+        {
+          "text": "國中會考英文科閱讀測驗佔整體成績 80%",
+          "kind": "researched_fact",
+          "sourceUrls": [
+            "https://cap.rcpet.edu.tw"
+          ]
+        },
+        {
+          "text": "國小至國中英文在評量重點與文法深度上有顯著斷層",
+          "kind": "researched_fact",
+          "sourceUrls": [
+            "https://www.cirn.moe.edu.tw"
+          ]
+        },
+        {
+          "text": "紙屬英文每週客製一份依孩子興趣、進度與表現動態調整的專屬紙本教材",
+          "kind": "brand_fact",
+          "sourceUrls": [
+            "https://paperbond.jjmowlab.com"
+          ]
+        }
+      ],
+      "mediaAssetId": "3714c934-1698-48ca-8d04-a330fa4c5455",
+      "mediaUrl": "https://ykzszjrqynrhgdhoeovo.supabase.co/storage/v1/object/public/marketing-media/screenshot/b2/b22327a96a255d323c110fe2904b5b24b5c938c4b41301402b0aa4576caeaa62-783012005_1730692881473933_8645900222310608723_n.jpg",
+      "ctaMode": "soft",
+      "destinationUrl": "https://paperbond.jjmowlab.com"
+    },
+    {
+      "platform": "instagram",
+      "requestedWindow": "19:00-21:30",
+      "copyText": "升國中英文第一次段考，為什麼很多人直接嚇傻？\n\n國小英文考 95 分是常態，\n國中英文考 60 分也是常態。\n\n不是題目變刁鑽，是考法變了：\n從「生活日常對話」變成「會考長篇閱讀素養」。\n光靠死背單字卡，進了考場根本讀不完。\n\n別讓孩子在螢幕前分心刷題庫了。\n回歸紙本手寫，把單字放在他感興趣的段落裡，\n每週一份專屬進度，陪孩子把英文底氣補回來。\n\n🔗 首週免費體驗在個人檔案連結 @paperenglish\npaperbond.jjmowlab.com\n\n#國中英文 #國中會考 #升國中 #英文學習 #紙屬英文",
+      "claimManifest": [
+        {
+          "text": "國中會考英文重視長篇閱讀素養",
+          "kind": "researched_fact",
+          "sourceUrls": [
+            "https://cap.rcpet.edu.tw"
+          ]
+        },
+        {
+          "text": "紙屬英文提供紙本學習與首週免費體驗",
+          "kind": "brand_fact",
+          "sourceUrls": [
+            "https://paperbond.jjmowlab.com"
+          ]
+        }
+      ],
+      "mediaAssetId": "3714c934-1698-48ca-8d04-a330fa4c5455",
+      "mediaUrl": "https://ykzszjrqynrhgdhoeovo.supabase.co/storage/v1/object/public/marketing-media/screenshot/b2/b22327a96a255d323c110fe2904b5b24b5c938c4b41301402b0aa4576caeaa62-783012005_1730692881473933_8645900222310608723_n.jpg",
+      "ctaMode": "soft",
+      "destinationUrl": "https://paperbond.jjmowlab.com"
+    }
+  ]
+}
