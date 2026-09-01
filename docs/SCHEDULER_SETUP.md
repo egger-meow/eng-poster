@@ -35,8 +35,11 @@ The repository contains **zero runtime LLM calls**. ChatGPT handles planning and
 2. Create a new Scheduled Task named `Paper English Daily Social Planner`.
 3. Set schedule recurrence: **Every day at 06:00 AM (Asia/Taipei)**.
 4. Connect the **Supabase MCP / Supabase tool** with read/write access to `marketing_content_plans`, `marketing_posts`, and `marketing_assets`.
-5. Copy the entire contents of [docs/CHATGPT_SCHEDULER_PROMPT.md](file:///c:/IDEA/eng-poster/docs/CHATGPT_SCHEDULER_PROMPT.md) into the task instructions.
-6. Verify first run: ChatGPT will execute the prompt, query recent plans/assets from Supabase, research the web, and insert the scheduled posts for the day.
+5. Attach or provide access to the repository's `knowledge/` directory:
+   - Core guides: `audience.md`, `brand.md`, `claims.md`, `product.md`, `voice.md`.
+   - All example files: `knowledge/examples/*.md` (used together as reference benchmarks across all platforms).
+6. Copy the entire contents of [docs/CHATGPT_SCHEDULER_PROMPT.md](file:///c:/IDEA/eng-poster/docs/CHATGPT_SCHEDULER_PROMPT.md) into the task instructions.
+7. Verify first run: ChatGPT will read all `knowledge/examples/**`, query recent plans/assets from Supabase, research the web, and insert the scheduled posts for the day.
 
 ---
 
