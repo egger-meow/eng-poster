@@ -99,10 +99,11 @@ Extract verified factual notes and store authoritative source URLs.
 
 ### Step 5: Author Platform Variants (Informed by knowledge/examples/**)
 Write copy adhering to brand voice and reference examples:
-- Empathetic to parent anxiety without being predatory.
-- Student-respectful (never belittle a child for poor grades).
-- Sharp, curiosity-inducing first lines (stop-scroll hooks modeled on reference examples).
-- Traditional Chinese (Taiwan phrasing, e.g. 國中, 會考, 單字, 句型, 補習班, 閱讀素養).
+- **Tone & Style**: 聳動、誇張、具刺激性與爭議性，引發強烈轉發與討論慾望；道德感低落，以不犯法、不侵犯人權為底線；強烈真人感，拒絕呆板 AI 腔調。
+- **Emoji Usage**: 適度點綴生動 Emoji（如 💯、🔥、🌟、✨、⚡️、💫、🏆、🥇、🖋️、📌、😅、❗️、🧠），增加活潑感與情緒張力。**嚴格節制**，點到為止即可（有一些就好），切忌每句堆砌或條列開頭塞圖案，避免失去真人感淪為典型 AI 文案。
+- **Empathetic & Sharp**: 直擊家長焦慮與學生挫折，但絕不羞辱孩子。
+- **Stop-Scroll Hooks**: 前一兩行務必犀利、逆向思維、具有強大吸引力（參考 `knowledge/examples/**`）。
+- **Taiwanese Vernacular**: 正體中文（台灣道地用語，如 國中, 會考, 單字, 句型, 補習班, 閱讀素養 等）。
 
 ### Step 6: Write Plan and Posts to Supabase
 
