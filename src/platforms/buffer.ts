@@ -161,7 +161,7 @@ export class BufferClient {
   async resolveChannelId(platform: Platform, channels?: BufferChannel[]): Promise<string> {
     const envKey = `BUFFER_${platform.toUpperCase()}_CHANNEL_ID` as keyof typeof env;
     const raw = process.env[envKey];
-    const configuredId = (raw !== undefined && raw !== '' ? raw : (env[envKey] as string | undefined))?.trim();
+    const configuredId = (raw !== undefined ? raw : (env[envKey] as string | undefined))?.trim();
 
     if (configuredId && configuredId !== '') {
       return configuredId;
@@ -195,6 +195,7 @@ export class BufferClient {
 
   async createPost(input: {
     channelId: string;
+    platform: Platform;
     text: string;
     mediaUrl?: string | null | undefined;
     schedulingType?: 'automatic' | undefined;
@@ -206,6 +207,21 @@ export class BufferClient {
       schedulingType: input.schedulingType ?? 'automatic',
       mode: input.mode ?? 'shareNow',
     };
+
+    if (input.platform === 'facebook') {
+      postInput.metadata = {
+        facebook: {
+          type: 'post',
+        },
+      };
+    } else if (input.platform === 'instagram') {
+      postInput.metadata = {
+        instagram: {
+          type: 'post',
+          shouldShareToFeed: true,
+        },
+      };
+    }
 
     if (input.mediaUrl) {
       postInput.assets = [
@@ -326,6 +342,7 @@ export class BufferPublisher extends BasePublisher implements SocialPublisher {
     const channelId = await this.client.resolveChannelId(this.platform);
     const postResult = await this.client.createPost({
       channelId,
+      platform: this.platform,
       text: post.copyText,
       mediaUrl: post.mediaUrl,
       mode: 'shareNow',

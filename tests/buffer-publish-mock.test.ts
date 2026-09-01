@@ -9,9 +9,9 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
 
   beforeEach(() => {
     process.env.BUFFER_API_KEY = 'test_buffer_api_key_123';
-    delete process.env.BUFFER_FACEBOOK_CHANNEL_ID;
-    delete process.env.BUFFER_INSTAGRAM_CHANNEL_ID;
-    delete process.env.BUFFER_THREADS_CHANNEL_ID;
+    process.env.BUFFER_FACEBOOK_CHANNEL_ID = '';
+    process.env.BUFFER_INSTAGRAM_CHANNEL_ID = '';
+    process.env.BUFFER_THREADS_CHANNEL_ID = '';
   });
 
   afterEach(() => {
@@ -202,6 +202,11 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
     expect(createPostInput.mode).toBe('shareNow');
     expect(createPostInput.schedulingType).toBe('automatic');
     expect(createPostInput.assets).toBeUndefined();
+    expect(createPostInput.metadata).toEqual({
+      facebook: {
+        type: 'post',
+      },
+    });
   });
 
   it('publishes Threads text post via Buffer GraphQL createPost with mode: shareNow', async () => {
@@ -265,7 +270,9 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
     expect(result.platformPostUrl).toBe('https://www.threads.net/@paperenglish/post/200');
     expect(createPostInput.channelId).toBe('ch_th_1');
     expect(createPostInput.mode).toBe('shareNow');
+    expect(createPostInput.schedulingType).toBe('automatic');
     expect(createPostInput.assets).toBeUndefined();
+    expect(createPostInput.metadata).toBeUndefined();
   });
 
   it('publishes Instagram image post via Buffer with public media URL in assets', async () => {
@@ -327,7 +334,141 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
     expect(result.platformPostId).toBe('buf_post_300');
     expect(result.platformPostUrl).toBe('https://www.instagram.com/p/300/');
     expect(createPostInput.channelId).toBe('ch_ig_1');
+    expect(createPostInput.mode).toBe('shareNow');
+    expect(createPostInput.schedulingType).toBe('automatic');
+    expect(createPostInput.metadata).toEqual({
+      instagram: {
+        type: 'post',
+        shouldShareToFeed: true,
+      },
+    });
     expect(createPostInput.assets).toEqual([
+      { image: { url: 'https://supabase.co/storage/v1/object/public/marketing-media/manual/sample.png' } },
+    ]);
+  });
+
+  it('Facebook post includes required Buffer post type metadata', async () => {
+    let interceptedInput: any;
+    const fetchMock = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(init?.body as string);
+      if (body.query.includes('GetOrganizations')) {
+        return new Response(
+          JSON.stringify({ data: { account: { organizations: [{ id: 'org_1', name: 'Paper English' }] } } }),
+          { status: 200 }
+        );
+      }
+      if (body.query.includes('GetChannels')) {
+        return new Response(
+          JSON.stringify({ data: { channels: [{ id: 'ch_fb_1', name: 'Paper English FB', service: 'facebook' }] } }),
+          { status: 200 }
+        );
+      }
+      if (body.query.includes('CreatePost')) {
+        interceptedInput = body.variables.input;
+        if (interceptedInput.metadata?.facebook?.type !== 'post') {
+          return new Response(
+            JSON.stringify({
+              data: {
+                createPost: {
+                  message: 'Invalid post: Facebook posts require a type (post, story, or reel).',
+                },
+              },
+            }),
+            { status: 200 }
+          );
+        }
+        return new Response(
+          JSON.stringify({
+            data: {
+              createPost: {
+                post: {
+                  id: 'buf_post_fb_reg',
+                  status: 'sent',
+                  externalLink: 'https://www.facebook.com/paperenglish/posts/reg',
+                },
+              },
+            },
+          }),
+          { status: 200 }
+        );
+      }
+      return new Response('{}', { status: 404 });
+    });
+    globalThis.fetch = fetchMock;
+
+    const fbPost: PreparedPost = { ...mockPost, mediaUrl: null };
+    const publisher = new BufferPublisher('facebook');
+    const result = await publisher.publish(fbPost);
+
+    expect(result.platformPostId).toBe('buf_post_fb_reg');
+    expect(interceptedInput.metadata?.facebook?.type).toBe('post');
+  });
+
+  it('Instagram post includes required Buffer post type/feed metadata', async () => {
+    let interceptedInput: any;
+    const fetchMock = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(init?.body as string);
+      if (body.query.includes('GetOrganizations')) {
+        return new Response(
+          JSON.stringify({ data: { account: { organizations: [{ id: 'org_1', name: 'Paper English' }] } } }),
+          { status: 200 }
+        );
+      }
+      if (body.query.includes('GetChannels')) {
+        return new Response(
+          JSON.stringify({ data: { channels: [{ id: 'ch_ig_1', name: 'Paper English IG', service: 'instagram' }] } }),
+          { status: 200 }
+        );
+      }
+      if (body.query.includes('CreatePost')) {
+        interceptedInput = body.variables.input;
+        if (
+          interceptedInput.metadata?.instagram?.type !== 'post' ||
+          interceptedInput.metadata?.instagram?.shouldShareToFeed !== true
+        ) {
+          return new Response(
+            JSON.stringify({
+              data: {
+                createPost: {
+                  message: 'Invalid post: Instagram posts require a type (post, story, or reel).',
+                },
+              },
+            }),
+            { status: 200 }
+          );
+        }
+        return new Response(
+          JSON.stringify({
+            data: {
+              createPost: {
+                post: {
+                  id: 'buf_post_ig_reg',
+                  status: 'sent',
+                  externalLink: 'https://www.instagram.com/p/reg/',
+                },
+              },
+            },
+          }),
+          { status: 200 }
+        );
+      }
+      return new Response('{}', { status: 404 });
+    });
+    globalThis.fetch = fetchMock;
+
+    const igPost: PreparedPost = {
+      ...mockPost,
+      platform: 'instagram',
+      destinationUrl: attributedUrl('https://paperbond.jjmowlab.com', 'instagram', 'always-on', 'post_1'),
+      mediaUrl: 'https://supabase.co/storage/v1/object/public/marketing-media/manual/sample.png',
+    };
+    const publisher = new BufferPublisher('instagram');
+    const result = await publisher.publish(igPost);
+
+    expect(result.platformPostId).toBe('buf_post_ig_reg');
+    expect(interceptedInput.metadata?.instagram?.type).toBe('post');
+    expect(interceptedInput.metadata?.instagram?.shouldShareToFeed).toBe(true);
+    expect(interceptedInput.assets).toEqual([
       { image: { url: 'https://supabase.co/storage/v1/object/public/marketing-media/manual/sample.png' } },
     ]);
   });
