@@ -72,6 +72,20 @@ The final command refuses to publish while `DRY_RUN=true` or `PAUSE_ALL_POSTING=
 GitHub Actions provide CI, a 30-minute dispatcher (`dispatch.yml`), daily token health (`token-health.yml`), and daily queue health monitoring (`queue-health.yml`).
 
 
+## Post Asset Strategy & Attribution
+
+Each post explicitly specifies its `asset_mode` (`text_only`, `image_post`, `link_preview`):
+- **Facebook**: Either `link_preview` (traffic) or `image_post` (branding/visuals), not mixed.
+  - `image_post`: Main post copy is clean with no raw URLs; the canonical destination URL is dispatched as the first comment (`metadata.facebook.firstComment`).
+  - `link_preview`: Main post copy contains the canonical destination URL; attached media is disallowed, and no duplicate first comment is created.
+  - `text_only`: Text post without media or destination URLs.
+- **Threads**: Selects `text_only`, `image_post`, or `link_preview` based on intent.
+  - `image_post`: Main post copy is clean with no raw URLs; when a destination URL exists, it is dispatched as a 2-item self-reply thread via Buffer's official `metadata.threads.thread`.
+  - `link_preview`: Main post copy contains the canonical destination URL; attached media is disallowed, and no duplicate thread reply is created.
+  - `text_only`: Sharp pedagogical opinions and insights without media or URLs.
+- **Instagram**: Strictly `image_post` only.
+  - Media asset is mandatory; caption has no raw URL; the destination URL is dispatched as the first comment (`metadata.instagram.firstComment`).
+
 ## Safety and failure behavior
 
 - `PAUSE_ALL_POSTING=true` stops all dispatch; per-platform switches are evaluated again at dispatch time.

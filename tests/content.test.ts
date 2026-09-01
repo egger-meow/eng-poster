@@ -1,3 +1,76 @@
-import { describe,expect,it } from 'vitest'; import { attributedUrl } from '../src/content/utm.js'; import { validatePreparedPost,publishingAllowed } from '../src/content/gates.js'; import { sha256,idempotencyKey } from '../src/shared/hash.js'; import type { PreparedPost } from '../src/types.js';
-const post=(over:Partial<PreparedPost>={}):PreparedPost=>({id:'p',contentPlanId:'c',platform:'threads',copyText:'opinion',destinationUrl:attributedUrl('https://paperbond.jjmowlab.com','threads','campaign','p'),scheduledFor:new Date().toISOString(),idempotencyKey:'k',campaignSlug:'campaign',claimManifest:[],...over});
-describe('content contracts',()=>{it('builds exact platform UTM attribution',()=>{const u=new URL(attributedUrl('https://paperbond.jjmowlab.com','facebook','fall','42','grammar'));expect(Object.fromEntries(u.searchParams)).toEqual({utm_source:'facebook',utm_medium:'organic_social',utm_campaign:'fall',utm_content:'42',utm_term:'grammar'});});it('hashes and keys deterministically',()=>{expect(sha256('x')).toBe(sha256('x'));expect(idempotencyKey('2026-01-01','threads','1','p')).toBe('2026-01-01:threads:1:p');});it('rejects unsupported claims',()=>{expect(validatePreparedPost(post({claimManifest:[{text:'90% improve',kind:'researched_fact',sourceUrls:[]}]})).valid).toBe(false);});it('requires Instagram media',()=>{expect(validatePreparedPost(post({platform:'instagram'})).errors).toContain('instagram requires media');});it('enforces global and isolated switches',()=>{expect(publishingAllowed('threads',{pauseAll:true,facebook:true,instagram:true,threads:true}).valid).toBe(false);expect(publishingAllowed('threads',{pauseAll:false,facebook:false,instagram:false,threads:true}).valid).toBe(true);expect(publishingAllowed('facebook',{pauseAll:false,facebook:false,instagram:true,threads:true}).valid).toBe(false);});});
+import { describe, expect, it } from 'vitest';
+import { attributedUrl } from '../src/content/utm.js';
+import { validatePreparedPost, publishingAllowed } from '../src/content/gates.js';
+import { sha256, idempotencyKey } from '../src/shared/hash.js';
+import type { PreparedPost } from '../src/types.js';
+
+const post = (over: Partial<PreparedPost> = {}): PreparedPost => {
+  const platform = over.platform ?? 'threads';
+  const assetMode =
+    over.assetMode ??
+    (platform === 'instagram'
+      ? 'image_post'
+      : over.mediaUrl
+        ? 'image_post'
+        : over.destinationUrl === null
+          ? 'text_only'
+          : 'link_preview');
+
+  return {
+    id: 'p',
+    contentPlanId: 'c',
+    platform,
+    assetMode,
+    copyText: 'opinion',
+    destinationUrl:
+      over.destinationUrl === null
+        ? null
+        : (over.destinationUrl ?? attributedUrl('https://paperbond.jjmowlab.com', platform, 'campaign', 'p')),
+    scheduledFor: new Date().toISOString(),
+    idempotencyKey: 'k',
+    campaignSlug: 'campaign',
+    claimManifest: [],
+    ...over,
+  };
+};
+
+describe('content contracts', () => {
+  it('builds exact platform UTM attribution', () => {
+    const u = new URL(attributedUrl('https://paperbond.jjmowlab.com', 'facebook', 'fall', '42', 'grammar'));
+    expect(Object.fromEntries(u.searchParams)).toEqual({
+      utm_source: 'facebook',
+      utm_medium: 'organic_social',
+      utm_campaign: 'fall',
+      utm_content: '42',
+      utm_term: 'grammar',
+    });
+  });
+
+  it('hashes and keys deterministically', () => {
+    expect(sha256('x')).toBe(sha256('x'));
+    expect(idempotencyKey('2026-01-01', 'threads', '1', 'p')).toBe('2026-01-01:threads:1:p');
+  });
+
+  it('rejects unsupported claims', () => {
+    expect(
+      validatePreparedPost(post({ claimManifest: [{ text: '90% improve', kind: 'researched_fact', sourceUrls: [] }] }))
+        .valid
+    ).toBe(false);
+  });
+
+  it('requires Instagram media', () => {
+    expect(validatePreparedPost(post({ platform: 'instagram' })).errors).toContain('instagram requires media');
+  });
+
+  it('enforces global and isolated switches', () => {
+    expect(publishingAllowed('threads', { pauseAll: true, facebook: true, instagram: true, threads: true }).valid).toBe(
+      false
+    );
+    expect(
+      publishingAllowed('threads', { pauseAll: false, facebook: false, instagram: false, threads: true }).valid
+    ).toBe(true);
+    expect(
+      publishingAllowed('facebook', { pauseAll: false, facebook: false, instagram: true, threads: true }).valid
+    ).toBe(false);
+  });
+});

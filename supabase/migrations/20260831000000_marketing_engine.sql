@@ -14,7 +14,9 @@ create table if not exists public.marketing_assets (
 );
 create table if not exists public.marketing_posts (
   id uuid primary key default gen_random_uuid(), content_plan_id uuid not null references public.marketing_content_plans(id) on delete cascade,
-  platform text not null check (platform in ('facebook','instagram','threads')), copy_text text not null, destination_url text,
+  platform text not null check (platform in ('facebook','instagram','threads')),
+  asset_mode text not null default 'text_only' check (asset_mode in ('text_only','image_post','link_preview')),
+  copy_text text not null, destination_url text,
   media_asset_id uuid references public.marketing_assets(id), scheduled_for timestamptz not null,
   status text not null check (status in ('scheduled','claimed','published','retryable_failed','permanently_failed','cancelled')) default 'scheduled',
   idempotency_key text not null unique, content_hash text not null, claim_manifest jsonb not null default '[]'::jsonb,

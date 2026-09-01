@@ -90,9 +90,20 @@ Search the web for:
 - Trending student interests (e.g. new gaming releases, sports tournaments, science topics) suitable for interest-based translation.
 Extract verified factual notes and store authoritative source URLs.
 
-### Step 4: Select Today's Archetype & Visual Strategy
+### Step 4: Select Archetype, Platform Post Strategy & Asset Mode
 1. Pick the most underrepresented archetype from the content mix.
-2. Select or match an available visual asset from `marketing_assets`:
+2. Intentionally determine the `asset_mode` for each platform post based on the goal:
+   - **`link_preview`** (Goal: website clicks & traffic):
+     - **Facebook & Threads**: Require a canonical `destination_url`. Media attachment is strictly forbidden (`media_asset_id = NULL`). The destination URL stays in the main post. No duplicate first comment/reply is created.
+     - **Instagram**: NOT allowed (`link_preview` is invalid on Instagram).
+   - **`image_post`** (Goal: brand trust, curriculum proof, visual hooks):
+     - **Facebook**: Attach media asset. Main body copy must be clean with **NO raw URL**. The `destination_url` will be placed automatically into the post's first comment (`firstComment`).
+     - **Threads**: Attach media asset. Root post copy must be clean with **NO raw URL**. When `destination_url` exists, it will be published as a 2-item thread self-reply.
+     - **Instagram**: Attach media asset (mandatory). Caption must NOT have raw URL. The `destination_url` will be placed in the first comment.
+   - **`text_only`** (Goal: sharp pedagogical opinion, concise thought leadership, discussion prompt):
+     - **Threads & Facebook**: Pure copy. No media (`media_asset_id = NULL`), no destination URL (`destination_url = NULL`).
+     - **Instagram**: NOT allowed (Instagram requires `image_post`).
+3. Select or match an available visual asset from `marketing_assets` for `image_post`:
    - Prioritize `source in ('manual', 'screenshot')`.
    - Avoid visual concepts used within the last 7 days (`visualConceptCooldownDays = 7`).
    - If no image is available and platform is Instagram, select an approved `fallback` asset from `marketing_assets`.
@@ -104,6 +115,7 @@ Write copy adhering to brand voice and reference examples:
 - **Empathetic & Sharp**: 直擊家長焦慮與學生挫折，但絕不羞辱孩子。
 - **Stop-Scroll Hooks**: 前一兩行務必犀利、逆向思維、具有強大吸引力（參考 `knowledge/examples/**`）。
 - **Taiwanese Vernacular**: 正體中文（台灣道地用語，如 國中, 會考, 單字, 句型, 補習班, 閱讀素養 等）。
+- **Attribution & URL Hygiene**: 若為 `image_post`，內文絕不放 raw URL，網址由引擎自動透過一樓留言/回覆導流；若為 `link_preview`，由主文自帶導流連結。
 
 ### Step 6: Write Plan and Posts to Supabase
 
@@ -136,6 +148,7 @@ INSERT INTO public.marketing_posts (
   id,
   content_plan_id,
   platform,
+  asset_mode,
   copy_text,
   destination_url,
   media_asset_id,
@@ -148,6 +161,7 @@ INSERT INTO public.marketing_posts (
   '<post_uuid>',
   '<plan_uuid_from_content_plan>',
   '<facebook | instagram | threads>',
+  '<text_only | image_post | link_preview>',
   '<post_copy_text>',
   '<https://paperbond.jjmowlab.com/?utm_source=...&utm_medium=organic_social&utm_campaign=always-on&utm_content=post_uuid | NULL>',
   '<media_asset_uuid_or_null>',

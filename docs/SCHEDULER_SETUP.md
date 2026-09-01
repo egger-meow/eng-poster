@@ -87,6 +87,7 @@ pnpm social enqueue-plan --input '{"planDate":"2026-09-01","archetype":"pain_poi
 | `id` | `uuid` | Primary key (`gen_random_uuid()`) |
 | `content_plan_id` | `uuid` | Foreign key referencing `marketing_content_plans(id)` |
 | `platform` | `text` | `'facebook' \| 'instagram' \| 'threads'` |
+| `asset_mode` | `text` | `'text_only' \| 'image_post' \| 'link_preview'` |
 | `copy_text` | `text` | Authored post text |
 | `destination_url` | `text` | UTM URL or `NULL` if CTA is none |
 | `media_asset_id` | `uuid` | Foreign key referencing `marketing_assets(id)` (optional) |
@@ -95,6 +96,18 @@ pnpm social enqueue-plan --input '{"planDate":"2026-09-01","archetype":"pain_poi
 | `idempotency_key` | `text` | `${plan_date}:${platform}:${slot_number}` (unique constraint) |
 | `content_hash` | `text` | `sha256(copy_text)` |
 | `claim_manifest` | `jsonb` | Array of `{ "text": "...", "kind": "...", "sourceUrls": [...] }` |
+
+### Asset Strategy & Attribution Rules:
+- **Facebook**: Either `link_preview` or `image_post` (not mixed).
+  - `image_post`: Media attached. Post body is clean (no raw URLs). `destination_url` is automatically sent to Buffer as the first comment (`metadata.facebook.firstComment`).
+  - `link_preview`: No attached media. Destination URL is included in the main post text. No duplicate first comment.
+  - `text_only`: Rare. No media, no URL.
+- **Threads**: Intentionally select `text_only`, `image_post`, or `link_preview`.
+  - `image_post`: Media attached. Main post copy has no raw URL. When `destination_url` exists, it is automatically published as a 2nd-item self-reply thread via Buffer's official `metadata.threads.thread`.
+  - `link_preview`: No attached media. Destination URL is in the main post. No duplicate reply.
+  - `text_only`: Pure copy. No media, no URL.
+- **Instagram**: Strictly `image_post` only.
+  - Media asset is mandatory. Caption has no raw URL. When `destination_url` exists, it is sent to Buffer as the first comment (`metadata.instagram.firstComment`).
 
 ---
 

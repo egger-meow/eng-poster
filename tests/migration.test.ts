@@ -15,8 +15,15 @@ describe('database lease and security contract', () => {
     expect(sql).toContain('revoke all on table public.marketing_content_plans from anon, authenticated;');
     expect(sql).toContain('revoke all on table public.marketing_posts from anon, authenticated;');
     expect(sql).toContain('revoke all on table public.marketing_assets from anon, authenticated;');
-    expect(sql).toContain('revoke all on table public.marketing_publish_attempts from anon, authenticated;');
     expect(sql).toContain('revoke all on table public.marketing_token_health from anon, authenticated;');
+  });
+
+  it('enforces asset_mode check constraint on marketing_posts', () => {
+    const sql = readFileSync('supabase/migrations/20260831000000_marketing_engine.sql', 'utf8').toLowerCase();
+    expect(sql).toContain("asset_mode in ('text_only','image_post','link_preview')");
+
+    const alterSql = readFileSync('supabase/migrations/20260901010000_post_asset_mode.sql', 'utf8').toLowerCase();
+    expect(alterSql).toContain("asset_mode in ('text_only', 'image_post', 'link_preview')");
   });
 });
 

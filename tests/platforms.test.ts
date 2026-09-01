@@ -2,16 +2,17 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { PreparedPost } from '../src/types.js';
 import { classifyError, PlatformError } from '../src/platforms/base.js';
 
-const p = {
+const p: PreparedPost = {
   id: '1',
   contentPlanId: '2',
   platform: 'threads',
+  assetMode: 'text_only',
   copyText: 'hello',
   scheduledFor: '',
   idempotencyKey: 'k',
   campaignSlug: 'c',
   claimManifest: [],
-} as PreparedPost;
+};
 
 describe('platform behavior and error classification', () => {
   beforeEach(() => {

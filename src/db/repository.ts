@@ -53,6 +53,7 @@ export class MarketingRepository {
         id: post.id,
         content_plan_id: post.contentPlanId,
         platform: post.platform,
+        asset_mode: post.assetMode,
         copy_text: post.copyText,
         destination_url: post.destinationUrl,
         media_asset_id: post.mediaAssetId,

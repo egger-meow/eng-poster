@@ -23,6 +23,7 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
     id: 'post_1',
     contentPlanId: 'plan_1',
     platform: 'facebook',
+    assetMode: 'image_post',
     copyText: '孩子不是討厭英文，他只是需要感興趣的教材。',
     destinationUrl: attributedUrl('https://paperbond.jjmowlab.com', 'facebook', 'always-on', 'post_1'),
     mediaUrl: 'https://supabase.co/storage/v1/object/public/marketing-media/manual/sample.png',
@@ -191,7 +192,7 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
     });
     globalThis.fetch = fetchMock;
 
-    const fbPost: PreparedPost = { ...mockPost, mediaUrl: null };
+    const fbPost: PreparedPost = { ...mockPost, assetMode: 'text_only', destinationUrl: null, mediaUrl: null };
     const publisher = new BufferPublisher('facebook');
     const result = await publisher.publish(fbPost);
 
@@ -259,8 +260,9 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
     const thPost: PreparedPost = {
       ...mockPost,
       platform: 'threads',
+      assetMode: 'text_only',
       copyText: 'Threads thought leadership copy',
-      destinationUrl: attributedUrl('https://paperbond.jjmowlab.com', 'threads', 'always-on', 'post_1'),
+      destinationUrl: null,
       mediaUrl: null,
     };
     const publisher = new BufferPublisher('threads');
@@ -325,7 +327,9 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
     const igPost: PreparedPost = {
       ...mockPost,
       platform: 'instagram',
-      destinationUrl: attributedUrl('https://paperbond.jjmowlab.com', 'instagram', 'always-on', 'post_1'),
+      assetMode: 'image_post',
+      ctaMode: 'none',
+      destinationUrl: null,
       mediaUrl: 'https://supabase.co/storage/v1/object/public/marketing-media/manual/sample.png',
     };
     const publisher = new BufferPublisher('instagram');
@@ -396,7 +400,7 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
     });
     globalThis.fetch = fetchMock;
 
-    const fbPost: PreparedPost = { ...mockPost, mediaUrl: null };
+    const fbPost: PreparedPost = { ...mockPost, assetMode: 'text_only', destinationUrl: null, mediaUrl: null };
     const publisher = new BufferPublisher('facebook');
     const result = await publisher.publish(fbPost);
 
@@ -477,6 +481,8 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
     const igPost: PreparedPost = {
       ...mockPost,
       platform: 'instagram',
+      assetMode: 'image_post',
+      destinationUrl: null,
       mediaUrl: null,
     };
     const publisher = new BufferPublisher('instagram');

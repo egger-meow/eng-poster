@@ -9,16 +9,22 @@ export function dryRun(
 ): { post: PreparedPost; validation: ValidationResult } {
   const id = newId();
   const dateStr = new Date().toISOString().slice(0, 10);
+  const resolvedMedia = platform === 'instagram' && !mediaUrl
+    ? 'https://supabase.co/storage/v1/object/public/marketing-media/fallback/sample.jpg'
+    : (mediaUrl ?? null);
+  const assetMode = platform === 'instagram' || resolvedMedia ? 'image_post' : 'link_preview';
+
   const post: PreparedPost = {
     id,
     contentPlanId: newId(),
     platform,
+    assetMode,
     copyText:
       platform === 'threads'
         ? '背了 30 個單字，隔天忘掉一大半。問題可能不只在記憶力。'
         : '孩子不是討厭英文，他可能只是受夠了無聊教材。\n\n把真正有興趣的題材，變成有學習目的的英文閱讀。',
     destinationUrl: attributedUrl('https://paperbond.jjmowlab.com', platform, 'dry-run', id),
-    mediaUrl: mediaUrl ?? null,
+    mediaUrl: resolvedMedia,
     scheduledFor: new Date().toISOString(),
     idempotencyKey: idempotencyKey(dateStr, platform, 'dry-run', id),
     campaignSlug: 'dry-run',

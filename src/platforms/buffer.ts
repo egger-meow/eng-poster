@@ -1,4 +1,5 @@
 import { env, requireEnv } from '../env.js';
+import { formatFirstComment, formatPublishCopyText, formatThreadsReply } from '../content/gates.js';
 import type { Platform, PreparedPost, PublishResult, SocialPublisher, TokenHealth } from '../types.js';
 import { BasePublisher, PlatformError } from './base.js';
 
@@ -198,6 +199,8 @@ export class BufferClient {
     platform: Platform;
     text: string;
     mediaUrl?: string | null | undefined;
+    firstComment?: string | null | undefined;
+    threadReplies?: string[] | undefined;
     schedulingType?: 'automatic' | undefined;
     mode?: 'shareNow' | undefined;
   }): Promise<BufferPostResult> {
@@ -209,18 +212,37 @@ export class BufferClient {
     };
 
     if (input.platform === 'facebook') {
+      const fbMeta: Record<string, unknown> = {
+        type: 'post',
+      };
+      if (input.firstComment) {
+        fbMeta.firstComment = input.firstComment;
+      }
       postInput.metadata = {
-        facebook: {
-          type: 'post',
-        },
+        facebook: fbMeta,
       };
     } else if (input.platform === 'instagram') {
-      postInput.metadata = {
-        instagram: {
-          type: 'post',
-          shouldShareToFeed: true,
-        },
+      const igMeta: Record<string, unknown> = {
+        type: 'post',
+        shouldShareToFeed: true,
       };
+      if (input.firstComment) {
+        igMeta.firstComment = input.firstComment;
+      }
+      postInput.metadata = {
+        instagram: igMeta,
+      };
+    } else if (input.platform === 'threads') {
+      if (input.threadReplies && input.threadReplies.length > 0) {
+        postInput.metadata = {
+          threads: {
+            thread: [
+              { text: input.text },
+              ...input.threadReplies.map((replyText) => ({ text: replyText })),
+            ],
+          },
+        };
+      }
     }
 
     if (input.mediaUrl) {
@@ -340,11 +362,28 @@ export class BufferPublisher extends BasePublisher implements SocialPublisher {
     }
 
     const channelId = await this.client.resolveChannelId(this.platform);
+    const publishText = formatPublishCopyText(post);
+    const mediaUrl = post.assetMode === 'image_post' ? post.mediaUrl : null;
+
+    let firstComment: string | null = null;
+    let threadReplies: string[] | undefined = undefined;
+
+    if (this.platform === 'threads') {
+      const reply = formatThreadsReply(post);
+      if (reply) {
+        threadReplies = [reply];
+      }
+    } else {
+      firstComment = formatFirstComment(post);
+    }
+
     const postResult = await this.client.createPost({
       channelId,
       platform: this.platform,
-      text: post.copyText,
-      mediaUrl: post.mediaUrl,
+      text: publishText,
+      mediaUrl,
+      firstComment,
+      threadReplies,
       mode: 'shareNow',
     });
 

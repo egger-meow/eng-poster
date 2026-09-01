@@ -249,5 +249,93 @@ describe('scheduler ingestion contract and validation gates', () => {
     expect(result.skipped).toBe(1);
     expect(result.errors[0]).toContain('Daily cap reached');
   });
+
+  it('enqueues posts with explicit assetMode and schedules asset_mode field in repository', async () => {
+    let scheduledPost: any;
+    const mockRepo = {
+      getRecentVisualConcepts: async () => [],
+      findPlan: async () => 'plan-123',
+      getExistingPostsForDate: async () => [],
+      countPostsForDateRange: async () => 0,
+      schedule: async (post: any) => {
+        scheduledPost = post;
+      },
+    } as any;
+
+    const payload = {
+      planDate: '2026-09-01',
+      archetype: 'pain_point',
+      topic: 'Test Topic',
+      posts: [
+        {
+          platform: 'threads' as const,
+          assetMode: 'text_only' as const,
+          copyText: 'Threads concise thought leadership without raw URLs',
+        },
+      ],
+    };
+
+    const { enqueuePlan } = await import('../src/orchestration/enqueue-plan.js');
+    const result = await enqueuePlan(payload, mockRepo);
+    expect(result.enqueued).toBe(1);
+    expect(scheduledPost.assetMode).toBe('text_only');
+    expect(scheduledPost.mediaUrl).toBeNull();
+  });
+
+  it('rejects plan when post has invalid asset_mode combination (facebook link_preview with media)', async () => {
+    const mockRepo = {
+      getRecentVisualConcepts: async () => [],
+      findPlan: async () => 'plan-123',
+      getExistingPostsForDate: async () => [],
+      countPostsForDateRange: async () => 0,
+    } as any;
+
+    const payload = {
+      planDate: '2026-09-01',
+      archetype: 'pain_point',
+      topic: 'Test Topic',
+      posts: [
+        {
+          platform: 'facebook' as const,
+          assetMode: 'link_preview' as const,
+          copyText: 'Check link',
+          destinationUrl: 'https://paperbond.jjmowlab.com',
+          mediaUrl: 'https://example.com/forbidden-media.png',
+        },
+      ],
+    };
+
+    const { enqueuePlan } = await import('../src/orchestration/enqueue-plan.js');
+    await expect(enqueuePlan(payload, mockRepo)).rejects.toThrow(
+      /facebook link_preview must not have an attached media asset/
+    );
+  });
+
+  it('rejects plan when instagram post specifies text_only mode', async () => {
+    const mockRepo = {
+      getRecentVisualConcepts: async () => [],
+      findPlan: async () => 'plan-123',
+      getExistingPostsForDate: async () => [],
+      countPostsForDateRange: async () => 0,
+    } as any;
+
+    const payload = {
+      planDate: '2026-08-31',
+      archetype: 'pain_point',
+      topic: 'Test Topic',
+      posts: [
+        {
+          platform: 'instagram' as const,
+          assetMode: 'text_only' as const,
+          copyText: 'IG cannot be text only',
+        },
+      ],
+    };
+
+    const { enqueuePlan } = await import('../src/orchestration/enqueue-plan.js');
+    await expect(enqueuePlan(payload, mockRepo)).rejects.toThrow(
+      /instagram only supports image_post mode/
+    );
+  });
 });
 

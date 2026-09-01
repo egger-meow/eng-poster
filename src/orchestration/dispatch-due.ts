@@ -12,6 +12,7 @@ function fromRow(row: any, mediaUrl: string | null): PreparedPost {
     id: row.id,
     contentPlanId: row.content_plan_id,
     platform: row.platform,
+    assetMode: row.asset_mode ?? (row.media_asset_id ? 'image_post' : (row.destination_url ? 'link_preview' : 'text_only')),
     copyText: row.copy_text,
     destinationUrl: row.destination_url,
     mediaAssetId: row.media_asset_id,

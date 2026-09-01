@@ -3,10 +3,11 @@ import { z } from 'zod';
 import { loadConfig } from '../config.js';
 import { chooseSlot } from '../content/schedule.js';
 import { attributedUrl } from '../content/utm.js';
+import { validatePreparedPost } from '../content/gates.js';
 import { MarketingRepository } from '../db/repository.js';
 import { selectAsset } from '../media/select.js';
 import { idempotencyKey, newId, sha256 } from '../shared/hash.js';
-import type { Claim, Platform, PreparedPost, ResearchSnapshot } from '../types.js';
+import type { AssetMode, Claim, Platform, PreparedPost, ResearchSnapshot } from '../types.js';
 
 const claimSchema = z.object({
   text: z.string().min(1),
@@ -16,6 +17,8 @@ const claimSchema = z.object({
 
 export const enqueuePostSchema = z.object({
   platform: z.enum(['facebook', 'instagram', 'threads']),
+  assetMode: z.enum(['text_only', 'image_post', 'link_preview']).optional(),
+  asset_mode: z.enum(['text_only', 'image_post', 'link_preview']).optional(),
   copyText: z.string().min(1),
   claimManifest: z.array(claimSchema).default([]),
   visualConcept: z.string().nullable().optional(),
@@ -25,6 +28,8 @@ export const enqueuePostSchema = z.object({
   mediaAssetId: z.string().uuid().nullable().optional(),
   mediaUrl: z.string().url().nullable().optional(),
   scheduledFor: z.string().datetime().nullable().optional(),
+  firstCommentText: z.string().nullable().optional(),
+  allowRawUrlOnImagePost: z.boolean().optional(),
 });
 
 export const enqueuePlanSchema = z.object({
@@ -170,11 +175,22 @@ export async function enqueuePlan(
     const slotNumber = existingDayPosts.length + 1;
     const postKey = idempotencyKey(input.planDate, platform, String(slotNumber));
 
+    // Resolve asset mode
+    const assetMode: AssetMode = postInput.assetMode ?? postInput.asset_mode ?? (
+      platform === 'instagram'
+        ? 'image_post'
+        : (postInput.mediaAssetId || postInput.mediaUrl)
+          ? 'image_post'
+          : (postInput.destinationUrl || (postInput.ctaMode && postInput.ctaMode !== 'none'))
+            ? 'link_preview'
+            : 'text_only'
+    );
+
     // Gate D: Media resolution and cooldowns
     let mediaUrl: string | null = postInput.mediaUrl ?? null;
     let mediaAssetId: string | null = postInput.mediaAssetId ?? null;
 
-    if (!mediaUrl && !mediaAssetId) {
+    if (assetMode === 'image_post' && !mediaUrl && !mediaAssetId) {
       const selected = await selectAsset(
         platform,
         [postInput.visualConcept ?? input.topic],
@@ -185,12 +201,15 @@ export async function enqueuePlan(
         repo
       );
       if (selected) {
-
         mediaUrl = selected.publicUrl;
         mediaAssetId = selected.id;
         usedAssetIdsThisRun.add(selected.id);
         if (selected.concept) usedConceptsThisRun.add(selected.concept);
       }
+    }
+
+    if (platform === 'instagram' && assetMode !== 'image_post') {
+      throw new Error('instagram only supports image_post mode');
     }
 
     if (platform === 'instagram' && !mediaUrl) {
@@ -200,10 +219,22 @@ export async function enqueuePlan(
     // Gate E: Destination URL and UTM attribution
     const postId = newId();
     let destinationUrl: string | null = null;
-    if (postInput.destinationUrl) {
-      destinationUrl = attributedUrl(postInput.destinationUrl, platform, input.campaignSlug, postId);
-    } else if (postInput.ctaMode && postInput.ctaMode !== 'none') {
-      destinationUrl = attributedUrl(config.websiteBaseUrl, platform, input.campaignSlug, postId);
+    if (assetMode === 'link_preview') {
+      if (postInput.destinationUrl) {
+        destinationUrl = attributedUrl(postInput.destinationUrl, platform, input.campaignSlug, postId);
+      } else {
+        destinationUrl = attributedUrl(config.websiteBaseUrl, platform, input.campaignSlug, postId);
+      }
+    } else if (assetMode === 'image_post') {
+      if (postInput.destinationUrl) {
+        destinationUrl = attributedUrl(postInput.destinationUrl, platform, input.campaignSlug, postId);
+      } else if (postInput.ctaMode && postInput.ctaMode !== 'none') {
+        destinationUrl = attributedUrl(config.websiteBaseUrl, platform, input.campaignSlug, postId);
+      }
+    } else if (assetMode === 'text_only') {
+      if (postInput.destinationUrl) {
+        destinationUrl = attributedUrl(postInput.destinationUrl, platform, input.campaignSlug, postId);
+      }
     }
 
     // Gate F: Slot scheduling
@@ -214,6 +245,7 @@ export async function enqueuePlan(
       id: postId,
       contentPlanId: planId,
       platform,
+      assetMode,
       copyText: postInput.copyText,
       destinationUrl,
       mediaUrl,
@@ -222,7 +254,15 @@ export async function enqueuePlan(
       idempotencyKey: postKey,
       campaignSlug: input.campaignSlug,
       claimManifest: postInput.claimManifest as Claim[],
+      ctaMode: postInput.ctaMode,
+      firstCommentText: postInput.firstCommentText ?? null,
+      allowRawUrlOnImagePost: postInput.allowRawUrlOnImagePost,
     };
+
+    const postValidation = validatePreparedPost(preparedPost);
+    if (!postValidation.valid) {
+      throw new Error(`Post validation failed for ${platform} (${assetMode}): ${postValidation.errors.join('; ')}`);
+    }
 
     await repo.schedule(preparedPost, sha256(preparedPost.copyText));
     scheduledCounts[platform]++;
