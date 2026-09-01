@@ -71,6 +71,17 @@ The final command refuses to publish while `DRY_RUN=true` or `PAUSE_ALL_POSTING=
 
 GitHub Actions provide CI, a 30-minute dispatcher (`dispatch.yml`), daily token health (`token-health.yml`), and daily queue health monitoring (`queue-health.yml`).
 
+## Decoupled Look-Ahead Buffer Scheduling
+
+To prevent GitHub Actions cron scheduling jitter from delaying social posts, Buffer acts as the native execution scheduler:
+1. **Durable Queue**: The scheduler writes posts with exact `scheduled_for` timestamps to Supabase.
+2. **Look-Ahead Dispatch**: Whenever the GitHub Actions dispatcher runs, it claims posts within the lookahead window (`dispatcher.lookaheadHours: 24`, default 24h).
+3. **Native Scheduling**: Future posts are submitted to Buffer via GraphQL with `mode: customScheduled`, `dueAt: ISO8601`, and `schedulingType: automatic`. Overdue posts are submitted with `mode: shareNow`.
+4. **Lifecycle State Machine**:
+   `scheduled` → `claimed` → `provider_scheduled` (Buffer accepted future schedule) → `published` (Buffer confirmed sent during reconciliation).
+5. **Reconciliation**: On every dispatcher run, `provider_scheduled` posts near or past due time are inspected via Buffer's GraphQL API (`post(input: { id })`). When Buffer marks a post `sent`, the engine transitions the post to `published` and records the live permalink.
+6. **Zero Duplicate Guarantee**: Row locks (`SKIP LOCKED`), checking pre-existing Buffer post IDs before re-dispatch, and channel searches for ambiguous network timeouts prevent duplicate posts.
+
 
 ## Post Asset Strategy & Attribution
 

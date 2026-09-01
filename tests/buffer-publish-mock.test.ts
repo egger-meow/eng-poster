@@ -629,4 +629,197 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
     expect(health.accountId).toBe('ch_fb_1');
     expect(health.diagnostic).toContain('Paper English Page');
   });
+
+  it('schedules future post with mode: customScheduled and dueAt timestamp', async () => {
+    let capturedInput: any;
+    const futureDate = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+
+    const fetchMock = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(init?.body as string);
+      if (body.query.includes('GetOrganizations')) {
+        return new Response(
+          JSON.stringify({ data: { account: { organizations: [{ id: 'org_1', name: 'Paper English' }] } } }),
+          { status: 200 }
+        );
+      }
+      if (body.query.includes('GetChannels')) {
+        return new Response(
+          JSON.stringify({ data: { channels: [{ id: 'ch_fb_1', name: 'Paper English FB', service: 'facebook' }] } }),
+          { status: 200 }
+        );
+      }
+      if (body.query.includes('CreatePost')) {
+        capturedInput = body.variables.input;
+        return new Response(
+          JSON.stringify({
+            data: {
+              createPost: {
+                post: {
+                  id: 'buf_post_future_1',
+                  status: 'scheduled',
+                  dueAt: futureDate,
+                  sentAt: null,
+                  sharedNow: false,
+                  externalLink: null,
+                  channelId: 'ch_fb_1',
+                  channelService: 'facebook',
+                  text: mockPost.copyText,
+                },
+              },
+            },
+          }),
+          { status: 200 }
+        );
+      }
+      return new Response('{}', { status: 404 });
+    });
+    globalThis.fetch = fetchMock;
+
+    const futurePost: PreparedPost = {
+      ...mockPost,
+      scheduledFor: futureDate,
+      assetMode: 'text_only',
+      destinationUrl: null,
+      mediaUrl: null,
+    };
+    const publisher = new BufferPublisher('facebook');
+    const result = await publisher.publish(futurePost);
+
+    expect(result.platformPostId).toBe('buf_post_future_1');
+    expect(result.isScheduled).toBe(true);
+    expect(result.providerStatus).toBe('scheduled');
+    expect(capturedInput.mode).toBe('customScheduled');
+    expect(capturedInput.dueAt).toBe(futureDate);
+    expect(capturedInput.schedulingType).toBe('automatic');
+  });
+
+  it('publishes overdue post immediately with mode: shareNow', async () => {
+    let capturedInput: any;
+    const pastDate = new Date(Date.now() - 3600 * 1000).toISOString();
+
+    const fetchMock = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(init?.body as string);
+      if (body.query.includes('GetOrganizations')) {
+        return new Response(
+          JSON.stringify({ data: { account: { organizations: [{ id: 'org_1', name: 'Paper English' }] } } }),
+          { status: 200 }
+        );
+      }
+      if (body.query.includes('GetChannels')) {
+        return new Response(
+          JSON.stringify({ data: { channels: [{ id: 'ch_th_1', name: 'Paper English Threads', service: 'threads' }] } }),
+          { status: 200 }
+        );
+      }
+      if (body.query.includes('CreatePost')) {
+        capturedInput = body.variables.input;
+        return new Response(
+          JSON.stringify({
+            data: {
+              createPost: {
+                post: {
+                  id: 'buf_post_overdue_1',
+                  status: 'sent',
+                  dueAt: pastDate,
+                  sentAt: new Date().toISOString(),
+                  sharedNow: true,
+                  externalLink: 'https://threads.net/p/overdue',
+                  channelId: 'ch_th_1',
+                  channelService: 'threads',
+                  text: 'Overdue post',
+                },
+              },
+            },
+          }),
+          { status: 200 }
+        );
+      }
+      return new Response('{}', { status: 404 });
+    });
+    globalThis.fetch = fetchMock;
+
+    const overduePost: PreparedPost = {
+      ...mockPost,
+      platform: 'threads',
+      scheduledFor: pastDate,
+      assetMode: 'text_only',
+      destinationUrl: null,
+      mediaUrl: null,
+      copyText: 'Overdue post',
+    };
+    const publisher = new BufferPublisher('threads');
+    const result = await publisher.publish(overduePost);
+
+    expect(result.platformPostId).toBe('buf_post_overdue_1');
+    expect(result.isScheduled).toBe(false);
+    expect(capturedInput.mode).toBe('shareNow');
+    expect(capturedInput.dueAt).toBeUndefined();
+  });
+
+  it('retrieves single post status via getPost', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(init?.body as string);
+      if (body.query.includes('GetPost')) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              post: {
+                id: body.variables.input.id,
+                status: 'sent',
+                dueAt: '2026-09-01T12:00:00Z',
+                sentAt: '2026-09-01T12:00:05Z',
+                externalLink: 'https://facebook.com/posts/999',
+              },
+            },
+          }),
+          { status: 200 }
+        );
+      }
+      return new Response('{}', { status: 404 });
+    });
+    globalThis.fetch = fetchMock;
+
+    const client = new BufferClient();
+    const post = await client.getPost('post_999');
+
+    expect(post?.id).toBe('post_999');
+    expect(post?.status).toBe('sent');
+    expect(post?.externalLink).toBe('https://facebook.com/posts/999');
+  });
+
+  it('retrieves recent channel posts via getChannelPosts for idempotency checks', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(init?.body as string);
+      if (body.query.includes('GetChannelPosts')) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              posts: {
+                edges: [
+                  {
+                    node: {
+                      id: 'buf_existing_1',
+                      status: 'scheduled',
+                      dueAt: '2026-09-01T15:00:00Z',
+                      text: 'Matching text for duplicate prevention',
+                    },
+                  },
+                ],
+              },
+            },
+          }),
+          { status: 200 }
+        );
+      }
+      return new Response('{}', { status: 404 });
+    });
+    globalThis.fetch = fetchMock;
+
+    const client = new BufferClient();
+    const posts = await client.getChannelPosts('ch_1', 10);
+
+    expect(posts).toHaveLength(1);
+    expect(posts[0]?.id).toBe('buf_existing_1');
+    expect(posts[0]?.text).toContain('Matching text');
+  });
 });

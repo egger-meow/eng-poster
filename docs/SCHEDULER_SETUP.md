@@ -92,7 +92,9 @@ pnpm social enqueue-plan --input '{"planDate":"2026-09-01","archetype":"pain_poi
 | `destination_url` | `text` | UTM URL or `NULL` if CTA is none |
 | `media_asset_id` | `uuid` | Foreign key referencing `marketing_assets(id)` (optional) |
 | `scheduled_for` | `timestamptz`| Scheduled publish timestamp (ISO8601 with timezone) |
-| `status` | `text` | Initial value `'scheduled'` |
+| `status` | `text` | Lifecycle: `'scheduled'` &rarr; `'claimed'` &rarr; `'provider_scheduled'` &rarr; `'published'` |
+| `provider_scheduled_at` | `timestamptz` | Timestamp when Buffer accepted the future schedule |
+| `provider_status` | `text` | Status reported by Buffer (`'scheduled'`, `'sent'`, `'failed'`) |
 | `idempotency_key` | `text` | `${plan_date}:${platform}:${slot_number}` (unique constraint) |
 | `content_hash` | `text` | `sha256(copy_text)` |
 | `claim_manifest` | `jsonb` | Array of `{ "text": "...", "kind": "...", "sourceUrls": [...] }` |

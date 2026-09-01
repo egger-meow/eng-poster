@@ -202,7 +202,8 @@ export class BufferClient {
     firstComment?: string | null | undefined;
     threadReplies?: string[] | undefined;
     schedulingType?: 'automatic' | undefined;
-    mode?: 'shareNow' | undefined;
+    mode?: 'shareNow' | 'customScheduled' | undefined;
+    dueAt?: string | null | undefined;
   }): Promise<BufferPostResult> {
     const postInput: Record<string, unknown> = {
       channelId: input.channelId,
@@ -210,6 +211,10 @@ export class BufferClient {
       schedulingType: input.schedulingType ?? 'automatic',
       mode: input.mode ?? 'shareNow',
     };
+
+    if (input.mode === 'customScheduled' && input.dueAt) {
+      postInput.dueAt = input.dueAt;
+    }
 
     if (input.platform === 'facebook') {
       const fbMeta: Record<string, unknown> = {
@@ -306,6 +311,69 @@ export class BufferClient {
 
     return data.createPost.post;
   }
+
+  async getPost(id: string): Promise<BufferPostResult | null> {
+    const data = await this.request<{
+      post?: BufferPostResult | null;
+    }>(
+      `
+      query GetPost($input: PostInput!) {
+        post(input: $input) {
+          id
+          status
+          dueAt
+          sentAt
+          sharedNow
+          externalLink
+          channelId
+          channelService
+          text
+        }
+      }
+    `,
+      { input: { id } }
+    );
+
+    return data?.post ?? null;
+  }
+
+  async getChannelPosts(channelId: string, limit = 20): Promise<BufferPostResult[]> {
+    const data = await this.request<{
+      posts?: {
+        edges?: Array<{
+          node: BufferPostResult;
+        }>;
+      };
+    }>(
+      `
+      query GetChannelPosts($input: PostsInput!) {
+        posts(input: $input) {
+          edges {
+            node {
+              id
+              status
+              dueAt
+              sentAt
+              sharedNow
+              externalLink
+              channelId
+              channelService
+              text
+            }
+          }
+        }
+      }
+    `,
+      {
+        input: {
+          filter: { channelIds: [channelId] },
+        },
+        first: limit,
+      }
+    );
+
+    return data?.posts?.edges?.map((e) => e.node) ?? [];
+  }
 }
 
 export class BufferPublisher extends BasePublisher implements SocialPublisher {
@@ -350,6 +418,15 @@ export class BufferPublisher extends BasePublisher implements SocialPublisher {
     }
   }
 
+  async getPost(id: string): Promise<BufferPostResult | null> {
+    return this.client.getPost(id);
+  }
+
+  async getChannelPosts(limit = 20): Promise<BufferPostResult[]> {
+    const channelId = await this.client.resolveChannelId(this.platform);
+    return this.client.getChannelPosts(channelId, limit);
+  }
+
   async publish(post: PreparedPost): Promise<PublishResult> {
     const validation = await this.validatePost(post);
     if (!validation.valid) {
@@ -377,6 +454,11 @@ export class BufferPublisher extends BasePublisher implements SocialPublisher {
       firstComment = formatFirstComment(post);
     }
 
+    const scheduledTime = new Date(post.scheduledFor).getTime();
+    const isFuture = scheduledTime > Date.now();
+    const mode = isFuture ? 'customScheduled' : 'shareNow';
+    const dueAt = isFuture ? new Date(post.scheduledFor).toISOString() : undefined;
+
     const postResult = await this.client.createPost({
       channelId,
       platform: this.platform,
@@ -384,21 +466,28 @@ export class BufferPublisher extends BasePublisher implements SocialPublisher {
       mediaUrl,
       firstComment,
       threadReplies,
-      mode: 'shareNow',
+      mode,
+      dueAt,
     });
+
+    const isScheduled = mode === 'customScheduled' && postResult.status !== 'sent';
 
     return {
       platformPostId: postResult.id,
       platformPostUrl: postResult.externalLink ?? null,
+      isScheduled,
+      providerStatus: postResult.status,
+      dueAt: postResult.dueAt ?? dueAt ?? null,
       rawSummary: {
         id: postResult.id,
         status: postResult.status,
-        dueAt: postResult.dueAt ?? null,
+        dueAt: postResult.dueAt ?? dueAt ?? null,
         sentAt: postResult.sentAt ?? null,
-        sharedNow: postResult.sharedNow ?? true,
+        sharedNow: postResult.sharedNow ?? !isScheduled,
         externalLink: postResult.externalLink ?? null,
         channelId: postResult.channelId ?? channelId,
         channelService: postResult.channelService ?? this.platform,
+        isScheduled,
       },
     };
   }

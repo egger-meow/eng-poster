@@ -4,7 +4,16 @@ export type Platform = (typeof platforms)[number];
 export const assetModes = ['text_only', 'image_post', 'link_preview'] as const;
 export type AssetMode = (typeof assetModes)[number];
 
-export type PostStatus = 'scheduled' | 'claimed' | 'published' | 'retryable_failed' | 'permanently_failed' | 'cancelled';
+export const postStatuses = [
+  'scheduled',
+  'claimed',
+  'provider_scheduled',
+  'published',
+  'retryable_failed',
+  'permanently_failed',
+  'cancelled',
+] as const;
+export type PostStatus = (typeof postStatuses)[number];
 export type AssetSource = 'manual' | 'screenshot' | 'template' | 'ai_generated' | 'fallback';
 
 export interface SourceRecord { url: string; title: string; retrievedAt: string; notes: string[] }
@@ -46,6 +55,9 @@ export interface ValidationResult {
 export interface PublishResult {
   platformPostId: string;
   platformPostUrl?: string | null;
+  isScheduled?: boolean;
+  providerStatus?: string;
+  dueAt?: string | null;
   rawSummary: Record<string, unknown>;
 }
 

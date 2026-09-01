@@ -62,5 +62,8 @@ retries:
   maxAuthoringRepairs: 1
   leaseMinutes: 15
 
+dispatcher:
+  lookaheadHours: 24
+
 utm:
   medium: organic_social

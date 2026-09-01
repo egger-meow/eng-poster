@@ -32,6 +32,11 @@ export const configSchema = z.object({
     maxAuthoringRepairs: z.number().int().min(0),
     leaseMinutes: z.number().int().positive(),
   }),
+  dispatcher: z
+    .object({
+      lookaheadHours: z.number().int().positive().default(24),
+    })
+    .default({ lookaheadHours: 24 }),
   utm: z.object({ medium: z.literal('organic_social') }),
 });
 

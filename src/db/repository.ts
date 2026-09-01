@@ -67,11 +67,17 @@ export class MarketingRepository {
     checked(true, error);
   }
 
-  async claimDue(limit: number, leaseMinutes: number, platforms?: Platform[]): Promise<any[]> {
+  async claimDue(
+    limit: number,
+    leaseMinutes: number,
+    platforms?: Platform[],
+    lookaheadHours = 24
+  ): Promise<any[]> {
     const { data, error } = await this.db.rpc('claim_marketing_posts', {
       p_limit: limit,
       p_lease_minutes: leaseMinutes,
       p_platforms: platforms && platforms.length > 0 ? platforms : null,
+      p_lookahead_hours: lookaheadHours,
     });
     return checked(data, error) ?? [];
   }
@@ -89,10 +95,50 @@ export class MarketingRepository {
     checked(true, error);
   }
 
-  async complete(
+  async markProviderScheduled(
     postId: string,
-    result: { platformPostId: string; platformPostUrl?: string | null },
-    mediaAssetId?: string | null
+    result: {
+      platformPostId: string;
+      platformPostUrl?: string | null | undefined;
+      providerStatus?: string | null | undefined;
+    }
+  ): Promise<void> {
+    const { error } = await this.db
+      .from('marketing_posts')
+      .update({
+        status: 'provider_scheduled',
+        platform_post_id: result.platformPostId,
+        platform_post_url: result.platformPostUrl ?? null,
+        provider_scheduled_at: new Date().toISOString(),
+        provider_status: result.providerStatus ?? 'scheduled',
+        lease_token: null,
+        lease_expires_at: null,
+        last_error: null,
+      })
+      .eq('id', postId)
+      .eq('status', 'claimed');
+    checked(true, error);
+  }
+
+  async getProviderScheduledPosts(beforeIso: string): Promise<any[]> {
+    const { data, error } = await this.db
+      .from('marketing_posts')
+      .select('*')
+      .eq('status', 'provider_scheduled')
+      .lte('scheduled_for', beforeIso)
+      .order('scheduled_for', { ascending: true });
+    return checked(data, error) ?? [];
+  }
+
+  async reconcilePublished(
+    postId: string,
+    result: {
+      platformPostId: string;
+      platformPostUrl?: string | null | undefined;
+      sentAt?: string | null | undefined;
+      providerStatus?: string | null | undefined;
+    },
+    mediaAssetId?: string | null | undefined
   ): Promise<void> {
     const { error } = await this.db
       .from('marketing_posts')
@@ -100,6 +146,63 @@ export class MarketingRepository {
         status: 'published',
         platform_post_id: result.platformPostId,
         platform_post_url: result.platformPostUrl ?? null,
+        provider_status: result.providerStatus ?? 'sent',
+        published_at: result.sentAt ?? new Date().toISOString(),
+        lease_token: null,
+        lease_expires_at: null,
+        last_error: null,
+      })
+      .eq('id', postId)
+      .in('status', ['provider_scheduled', 'claimed']);
+    checked(true, error);
+
+    if (mediaAssetId) {
+      await this.recordAssetUsage(mediaAssetId);
+    }
+  }
+
+  async reconcileFailed(
+    postId: string,
+    retryable: boolean,
+    message: string
+  ): Promise<void> {
+    const { error } = await this.db
+      .from('marketing_posts')
+      .update({
+        status: retryable ? 'retryable_failed' : 'permanently_failed',
+        provider_status: 'failed',
+        last_error: message.slice(0, 1000),
+        lease_token: null,
+        lease_expires_at: null,
+      })
+      .eq('id', postId)
+      .eq('status', 'provider_scheduled');
+    checked(true, error);
+  }
+
+  async updateProviderStatus(postId: string, providerStatus: string): Promise<void> {
+    const { error } = await this.db
+      .from('marketing_posts')
+      .update({
+        provider_status: providerStatus,
+      })
+      .eq('id', postId)
+      .eq('status', 'provider_scheduled');
+    checked(true, error);
+  }
+
+  async complete(
+    postId: string,
+    result: { platformPostId: string; platformPostUrl?: string | null | undefined },
+    mediaAssetId?: string | null | undefined
+  ): Promise<void> {
+    const { error } = await this.db
+      .from('marketing_posts')
+      .update({
+        status: 'published',
+        platform_post_id: result.platformPostId,
+        platform_post_url: result.platformPostUrl ?? null,
+        provider_status: 'sent',
         published_at: new Date().toISOString(),
         lease_token: null,
         lease_expires_at: null,
@@ -369,6 +472,100 @@ export class MarketingRepository {
       .gte('published_at', since);
     checked(true, error);
     return count ?? 0;
+  }
+
+  async getQueueHealthBreakdown(sinceIso: string, untilIso: string): Promise<{
+    waitingToSubmit: number;
+    providerScheduled: number;
+    published: number;
+    retryableFailed: number;
+    permanentlyFailed: number;
+    nextLocalScheduledPostAt: string | null;
+    nextProviderScheduledPublishAt: string | null;
+    staleLocalCount: number;
+    staleProviderScheduledCount: number;
+  }> {
+    const { count: waitingCount, error: err1 } = await this.db
+      .from('marketing_posts')
+      .select('id', { count: 'exact', head: true })
+      .in('status', ['scheduled', 'claimed'])
+      .gte('scheduled_for', sinceIso)
+      .lte('scheduled_for', untilIso);
+    checked(true, err1);
+
+    const { count: providerCount, error: err2 } = await this.db
+      .from('marketing_posts')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'provider_scheduled')
+      .gte('scheduled_for', sinceIso)
+      .lte('scheduled_for', untilIso);
+    checked(true, err2);
+
+    const { count: publishedCount, error: err3 } = await this.db
+      .from('marketing_posts')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'published')
+      .gte('scheduled_for', sinceIso)
+      .lte('scheduled_for', untilIso);
+    checked(true, err3);
+
+    const { count: retryableCount, error: err4 } = await this.db
+      .from('marketing_posts')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'retryable_failed');
+    checked(true, err4);
+
+    const { count: permanentCount, error: err5 } = await this.db
+      .from('marketing_posts')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'permanently_failed');
+    checked(true, err5);
+
+    const { data: nextLocal, error: err6 } = await this.db
+      .from('marketing_posts')
+      .select('scheduled_for')
+      .in('status', ['scheduled', 'claimed'])
+      .gte('scheduled_for', sinceIso)
+      .order('scheduled_for', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    checked(true, err6);
+
+    const { data: nextProvider, error: err7 } = await this.db
+      .from('marketing_posts')
+      .select('scheduled_for')
+      .eq('status', 'provider_scheduled')
+      .gte('scheduled_for', sinceIso)
+      .order('scheduled_for', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    checked(true, err7);
+
+    const { count: staleLocal, error: err8 } = await this.db
+      .from('marketing_posts')
+      .select('id', { count: 'exact', head: true })
+      .in('status', ['scheduled', 'claimed'])
+      .lt('scheduled_for', sinceIso);
+    checked(true, err8);
+
+    const { count: staleProvider, error: err9 } = await this.db
+      .from('marketing_posts')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'provider_scheduled')
+      .lt('scheduled_for', sinceIso);
+    checked(true, err9);
+
+    return {
+      waitingToSubmit: waitingCount ?? 0,
+      providerScheduled: providerCount ?? 0,
+      published: publishedCount ?? 0,
+      retryableFailed: retryableCount ?? 0,
+      permanentlyFailed: permanentCount ?? 0,
+      nextLocalScheduledPostAt: nextLocal?.scheduled_for ?? null,
+      nextProviderScheduledPublishAt: nextProvider?.scheduled_for ?? null,
+      staleLocalCount: staleLocal ?? 0,
+      staleProviderScheduledCount: staleProvider ?? 0,
+    };
   }
 }
 

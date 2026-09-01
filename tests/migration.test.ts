@@ -25,5 +25,19 @@ describe('database lease and security contract', () => {
     const alterSql = readFileSync('supabase/migrations/20260901010000_post_asset_mode.sql', 'utf8').toLowerCase();
     expect(alterSql).toContain("asset_mode in ('text_only', 'image_post', 'link_preview')");
   });
+
+  it('enforces provider_scheduled lifecycle and lookahead claiming in migrations', () => {
+    const baseSql = readFileSync('supabase/migrations/20260831000000_marketing_engine.sql', 'utf8').toLowerCase();
+    expect(baseSql).toContain("'provider_scheduled'");
+    expect(baseSql).toContain('p_lookahead_hours integer default 24');
+    expect(baseSql).toContain('provider_scheduled_at timestamptz');
+    expect(baseSql).toContain('provider_status text');
+
+    const alterSql = readFileSync('supabase/migrations/20260901020000_provider_scheduled_lifecycle.sql', 'utf8').toLowerCase();
+    expect(alterSql).toContain("'provider_scheduled'");
+    expect(alterSql).toContain('p_lookahead_hours integer default 24');
+    expect(alterSql).toContain('provider_scheduled_at timestamptz');
+    expect(alterSql).toContain('provider_status text');
+  });
 });
 

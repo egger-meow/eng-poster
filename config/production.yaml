@@ -9,5 +9,6 @@ contentMix: { painPointOrOpinion: 0.35, educationalValue: 0.25, productProof: 0.
 cta: { none: 0.50, soft: 0.30, direct: 0.20 }
 media: { exactAssetCooldownDays: 30, visualConceptCooldownDays: 7 }
 retries: { maxPublishAttempts: 4, maxAuthoringRepairs: 1, leaseMinutes: 15 }
+dispatcher: { lookaheadHours: 24 }
 utm: { medium: organic_social }
 

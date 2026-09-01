@@ -9,7 +9,16 @@ export interface QueueHealthReport {
   upcomingHours: number;
   totalUpcoming: number;
   byPlatform: Record<Platform, number>;
+  waitingToSubmit: number;
+  providerScheduled: number;
+  published: number;
+  retryableFailed: number;
+  permanentlyFailed: number;
   nextScheduledPostAt: string | null;
+  nextLocalScheduledPostAt: string | null;
+  nextProviderScheduledPublishAt: string | null;
+  staleLocalCount: number;
+  staleProviderScheduledCount: number;
   message: string;
 }
 
@@ -34,8 +43,43 @@ export async function checkQueueHealth(
   }
 
   const nextScheduledPostAt = await repo.getNextScheduledPost(start);
-  const healthy = totalUpcoming > 0;
 
+  let breakdown = {
+    waitingToSubmit: 0,
+    providerScheduled: 0,
+    published: 0,
+    retryableFailed: 0,
+    permanentlyFailed: 0,
+    nextLocalScheduledPostAt: nextScheduledPostAt,
+    nextProviderScheduledPublishAt: null as string | null,
+    staleLocalCount: 0,
+    staleProviderScheduledCount: 0,
+  };
+
+  if (typeof repo.getQueueHealthBreakdown === 'function') {
+    breakdown = await repo.getQueueHealthBreakdown(start, end);
+  }
+
+  const healthy = totalUpcoming > 0 && breakdown.staleLocalCount === 0 && breakdown.permanentlyFailed === 0;
+
+  const messages: string[] = [];
+  if (totalUpcoming > 0) {
+    messages.push(
+      `Queue healthy: ${totalUpcoming} posts in next ${hours}h (${breakdown.waitingToSubmit} waiting to submit, ${breakdown.providerScheduled} scheduled with provider).`
+    );
+  } else {
+    messages.push(`Queue empty: 0 posts scheduled in the next ${hours}h. ChatGPT scheduler execution needed.`);
+  }
+
+  if (breakdown.staleLocalCount > 0) {
+    messages.push(`WARNING: ${breakdown.staleLocalCount} local scheduled posts are overdue/stale.`);
+  }
+  if (breakdown.staleProviderScheduledCount > 0) {
+    messages.push(`NOTE: ${breakdown.staleProviderScheduledCount} provider-scheduled posts awaiting reconciliation.`);
+  }
+  if (breakdown.permanentlyFailed > 0) {
+    messages.push(`ALERT: ${breakdown.permanentlyFailed} permanently failed posts.`);
+  }
 
   return {
     checkedAt: now.toISO()!,
@@ -43,9 +87,16 @@ export async function checkQueueHealth(
     upcomingHours: hours,
     totalUpcoming,
     byPlatform,
+    waitingToSubmit: breakdown.waitingToSubmit,
+    providerScheduled: breakdown.providerScheduled,
+    published: breakdown.published,
+    retryableFailed: breakdown.retryableFailed,
+    permanentlyFailed: breakdown.permanentlyFailed,
     nextScheduledPostAt,
-    message: healthy
-      ? `Queue healthy: ${totalUpcoming} posts scheduled in the next ${hours}h across enabled platforms.`
-      : `Queue empty: 0 posts scheduled in the next ${hours}h. ChatGPT scheduler execution needed.`,
+    nextLocalScheduledPostAt: breakdown.nextLocalScheduledPostAt,
+    nextProviderScheduledPublishAt: breakdown.nextProviderScheduledPublishAt,
+    staleLocalCount: breakdown.staleLocalCount,
+    staleProviderScheduledCount: breakdown.staleProviderScheduledCount,
+    message: messages.join(' '),
   };
 }
