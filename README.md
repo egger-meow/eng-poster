@@ -2,7 +2,7 @@
 
 Organic-social infrastructure, scheduling validation, asset management, and publishing for 紙屬英文 on Facebook, Instagram, and Threads.
 
-The engine uses **ChatGPT Scheduled Tasks** as its autonomous research, topic discovery, and writing brain, while this repository provides hardened scheduling, claim verification, asset tracking, safety switches, and Meta publishing infrastructure.
+The engine uses **ChatGPT Scheduled Tasks** as its autonomous research, topic discovery, and writing brain, while this repository provides hardened scheduling, claim verification, asset tracking, safety switches, and Buffer GraphQL publishing infrastructure (Facebook, Instagram, Threads).
 
 The engine is safe by default: `.env.example` starts in dry-run/global-pause mode, every Paper English URL gets platform-specific UTM attribution, researched claims require stored sources, and live smoke publishing needs both `DRY_RUN=false` and `--confirm-live`.
 
@@ -12,7 +12,7 @@ The engine is safe by default: `.env.example` starts in dry-run/global-pause mod
 - pnpm 10.15.1
 - Supabase project / CLI
 - ChatGPT with Scheduled Tasks or direct Supabase connection (see [docs/SCHEDULER_SETUP.md](docs/SCHEDULER_SETUP.md))
-- Independent Meta credentials described in [docs/MANUAL_SETUP.md](docs/MANUAL_SETUP.md)
+- Buffer account with connected Facebook, Instagram, and Threads channels (see [docs/MANUAL_SETUP.md](docs/MANUAL_SETUP.md))
 
 ## Local setup
 
@@ -22,6 +22,7 @@ cp .env.example .env
 cp config/production.example.yaml config/production.yaml
 pnpm verify
 supabase db reset
+pnpm social buffer-channels
 pnpm social token-health
 pnpm social ingest-assets
 pnpm social dry-run --platform threads
@@ -34,13 +35,16 @@ pnpm social queue-health
 # Ingest and validate a content plan from ChatGPT Scheduler
 pnpm social enqueue-plan --input payload.json
 
+# Discover connected Buffer channels
+pnpm social buffer-channels
+
 # Check upcoming scheduled queue health
 pnpm social queue-health --hours 48
 
 # Dispatch due posts (runs every 30 mins in GitHub Actions)
 pnpm social dispatch-due
 
-# Validate Meta credentials and token expiry
+# Validate Buffer credentials and channel health
 pnpm social token-health
 
 # Ingest local assets into Supabase storage and library

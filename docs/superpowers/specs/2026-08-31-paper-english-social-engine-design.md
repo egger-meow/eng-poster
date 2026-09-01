@@ -645,40 +645,18 @@ Never store access tokens in Supabase rows, logs, GitHub artifacts, screenshots 
 
 Expected secret groups:
 
-### OpenAI
+### Buffer Gateway (Single Publishing Gateway)
 
-- `OPENAI_API_KEY`
+- `BUFFER_API_KEY`: Personal API key from `publish.buffer.com/settings/api`
+- Optional channel IDs: `BUFFER_FACEBOOK_CHANNEL_ID`, `BUFFER_INSTAGRAM_CHANNEL_ID`, `BUFFER_THREADS_CHANNEL_ID` (auto-resolved when single channel exists per platform)
 
 ### Supabase
 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-### Facebook
-
-- `FACEBOOK_PAGE_ID`
-- `FACEBOOK_PAGE_ACCESS_TOKEN`
-- optional app values for diagnostics/refresh flows as required by current Meta API setup
-
-### Instagram
-
-Use Instagram API with Instagram Login so the Instagram identity can remain independent from the Facebook Page.
-
-- `INSTAGRAM_USER_ID`
-- `INSTAGRAM_ACCESS_TOKEN`
-- `INSTAGRAM_APP_ID`
-- `INSTAGRAM_APP_SECRET`
-
-Required scopes for publishing must be validated against current Meta documentation during implementation. As of this design, the current Instagram Login scope naming includes `instagram_business_basic` and `instagram_business_content_publish`.
-
-### Threads
-
-- `THREADS_USER_ID`
-- `THREADS_ACCESS_TOKEN`
-- `THREADS_APP_ID`
-- `THREADS_APP_SECRET`
-
-Publishing authorization requires at least the current equivalents of `threads_basic` and `threads_content_publish`.
+> [!NOTE]
+> Meta for Developers is not required for this architecture. Facebook Page, Instagram, and Threads publishing is unified via Buffer GraphQL API.
 
 ## 13. Token Health and Refresh
 

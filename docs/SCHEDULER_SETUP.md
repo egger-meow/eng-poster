@@ -19,13 +19,13 @@ flowchart TD
     E -->|Supabase Database| F[(marketing_content_plans\nmarketing_posts\nmarketing_assets)]
     G[Cron Dispatcher - every 30 min] -->|Claim Lease Locks| F
     G --> H{Publishing Gates}
-    H -->|Dry Run / Live| I[Meta Graph API\nFB / IG / Threads]
+    H -->|Dry Run / Live| I[Buffer GraphQL API\nFB / IG / Threads]
     I --> J[Record Real Permalinks & Asset Usage]
     J --> F
   end
 ```
 
-The repository contains **zero runtime LLM calls**. ChatGPT handles planning and research; the repository provides hardened database management, asset tracking, safety switches, and Meta publishing infrastructure.
+The repository contains **zero runtime LLM calls**. ChatGPT handles planning and research; the repository provides hardened database management, asset tracking, safety switches, and Buffer publishing infrastructure.
 
 ---
 

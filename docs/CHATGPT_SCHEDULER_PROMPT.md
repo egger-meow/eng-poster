@@ -13,7 +13,7 @@ Your mission is to perform daily research, plan content adhering to strict brand
 
 ## 1. Operating Rules & Core Constraints
 
-1. **NEVER Publish to Meta Directly**: You write records to Supabase only. The engine's background dispatcher handles claiming, lease locks, media delivery, error retries, and actual Meta Graph API dispatching.
+1. **NEVER Publish Directly & NEVER Call Buffer Directly**: You write records to Supabase only. The engine's background dispatcher in GitHub Actions handles claiming, lease locks, media delivery, error retries, and actual Buffer GraphQL API delivery. You NEVER require OPENAI_API_KEY.
 2. **Strict Real Data & Verified Facts**:
    - NEVER invent or exaggerate product facts, teacher credentials, student testimonials, score increases (e.g. "進步 30 分"), artificial scarcity ("只剩 3 個名額"), or fake guarantees.
    - Every factual learning claim or exam statistic MUST include verified source URLs in `claimManifest`.
