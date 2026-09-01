@@ -29,33 +29,43 @@ The repository contains **zero runtime LLM calls**. ChatGPT handles planning and
 
 ---
 
-## 2. Option A: ChatGPT Scheduled Task with Supabase Integration (Recommended)
+## 2. Recommended Workflow: Deterministic Ingestion via `enqueue-plan`
 
-1. Open **ChatGPT** (with custom GPT or ChatGPT Scheduled Tasks enabled).
-2. Create a new Scheduled Task named `Paper English Daily Social Planner`.
-3. Set schedule recurrence: **Every day at 06:00 AM (Asia/Taipei)**.
-4. Connect the **Supabase MCP / Supabase tool** with read/write access to `marketing_content_plans`, `marketing_posts`, and `marketing_assets`.
-5. Attach or provide access to the repository's `knowledge/` directory:
-   - Core guides: `audience.md`, `brand.md`, `claims.md`, `product.md`, `voice.md`.
-   - All example files: `knowledge/examples/*.md` (used together as reference benchmarks across all platforms).
-6. Copy the entire contents of [docs/CHATGPT_SCHEDULER_PROMPT.md](file:///c:/IDEA/eng-poster/docs/CHATGPT_SCHEDULER_PROMPT.md) into the task instructions.
-7. Verify first run: ChatGPT will read all `knowledge/examples/**`, query recent plans/assets from Supabase, research the web, and insert the scheduled posts for the day.
+The safest, production-hardened pattern is:
+1. **ChatGPT generates the JSON plan**: Following [docs/CHATGPT_SCHEDULER_PROMPT.md](file:///c:/IDEA/eng-poster/docs/CHATGPT_SCHEDULER_PROMPT.md), ChatGPT outputs a structured JSON payload conforming to `EnqueuePlanInput`.
+2. **Deterministic Validation Gate**: The engine's CLI (`pnpm social enqueue-plan`) sits in front of the database to enforce:
+   - Platform character limits (Threads: 500, Instagram: 2200, Facebook: 63206)
+   - Asset mode validation (`text_only`, `image_post`, `link_preview`)
+   - Mandatory source URLs on all factual/researched claims
+   - Media selection with cooldowns (`visualConceptCooldownDays = 7`)
+   - Platform weekly and daily caps
+   - Deterministic slot timing and collision avoidance
+   - UTM parameter generation and clean first-comment attribution
+   - SHA-256 content hashing and idempotent deduplication
+3. **Safe Queue Insertion**: Only fully-validated plans and posts are written into Supabase.
 
----
-
-## 3. Option B: CLI / Webhook Ingestion via `enqueue-plan`
-
-If you run ChatGPT in an environment without direct Supabase SQL connectivity, ChatGPT can output the plan payload as JSON, and the engine ingests it with full deterministic validation:
-
+### CLI Usage:
 ```bash
 pnpm social enqueue-plan --input payload.json
 ```
 
-Or pass JSON inline:
-
+Or inline:
 ```bash
-pnpm social enqueue-plan --input '{"planDate":"2026-09-01","archetype":"pain_point","topic":"背單字挫折","posts":[{"platform":"threads","copyText":"孩子背了就忘...","claimManifest":[]}]}'
+pnpm social enqueue-plan --input '{"planDate":"2026-09-02","archetype":"pain_point","topic":"背單字挫折","posts":[{"platform":"threads","assetMode":"text_only","copyText":"孩子背了就忘...","claimManifest":[]}]}'
 ```
+
+---
+
+## 3. ChatGPT Scheduled Task Setup
+
+1. Open **ChatGPT** (with custom GPT or ChatGPT Scheduled Tasks enabled).
+2. Create a new Scheduled Task named `Paper English Daily Social Planner`.
+3. Set schedule recurrence: **Every day at 06:00 AM (Asia/Taipei)**.
+4. Attach or provide access to the repository's `knowledge/` directory:
+   - Core guides: `audience.md`, `brand.md`, `claims.md`, `product.md`, `voice.md`.
+   - All example files: `knowledge/examples/**` (`knowledge/examples/*.md`, used together as reference benchmarks across all platforms).
+5. Copy the entire contents of [docs/CHATGPT_SCHEDULER_PROMPT.md](file:///c:/IDEA/eng-poster/docs/CHATGPT_SCHEDULER_PROMPT.md) into the task instructions.
+6. Execution: The task outputs the validated plan JSON, which can be piped to `pnpm social enqueue-plan` via GitHub Actions or webhook.
 
 ### Ingestion Validation Gates:
 - `planDate` validation (YYYY-MM-DD).

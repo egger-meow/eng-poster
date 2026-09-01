@@ -31,6 +31,17 @@ async function walk(dir: string): Promise<string[]> {
   return out;
 }
 
+function extractTopicsFromFilename(name: string): string[] {
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(name)) {
+    return ['general'];
+  }
+  const parts = name
+    .split(/[-_ ]+/)
+    .map((p) => p.trim().toLowerCase())
+    .filter((p) => p.length > 1 && !/^[0-9a-f]{6,}$/i.test(p));
+  return parts.length > 0 ? parts : ['general'];
+}
+
 export function determineAssetSource(filePath: string): AssetSource {
   const norm = normalize(filePath).replace(/\\/g, '/').toLowerCase();
   if (norm.includes('/fallback/') || norm.startsWith('assets/fallback')) {
@@ -82,7 +93,7 @@ export async function ingestAssets(roots: string[] | string = ['assets/manual', 
         width: meta.width,
         height: meta.height,
         format: meta.format,
-        topics: md.topics ?? basename(file, extname(file)).split(/[-_ ]+/),
+        topics: md.topics ?? extractTopicsFromFilename(basename(file, extname(file))),
         audience: md.audience ?? ['parents', 'students'],
         allowedPlatforms: (md.platforms ?? ['facebook', 'instagram', 'threads']) as Platform[],
         reuse: md.reuse ?? true,

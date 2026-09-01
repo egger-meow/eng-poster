@@ -79,6 +79,24 @@ export class MarketingRepository {
       p_platforms: platforms && platforms.length > 0 ? platforms : null,
       p_lookahead_hours: lookaheadHours,
     });
+
+    if (
+      error &&
+      (error.code === 'PGRST202' ||
+        error.message?.includes('p_lookahead_hours') ||
+        error.message?.includes('does not exist'))
+    ) {
+      console.warn(
+        'claim_marketing_posts 4-arg RPC not found on Supabase; falling back to 3-arg legacy signature (migration pending)'
+      );
+      const { data: fallbackData, error: fallbackError } = await this.db.rpc('claim_marketing_posts', {
+        p_limit: limit,
+        p_lease_minutes: leaseMinutes,
+        p_platforms: platforms && platforms.length > 0 ? platforms : null,
+      });
+      return checked(fallbackData, fallbackError) ?? [];
+    }
+
     return checked(data, error) ?? [];
   }
 

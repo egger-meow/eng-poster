@@ -10,6 +10,9 @@ alter table public.marketing_posts add column if not exists provider_status text
 create index if not exists marketing_posts_provider_scheduled_idx
   on public.marketing_posts(status, scheduled_for) where status = 'provider_scheduled';
 
+-- Drop 3-argument version from base migration to avoid ambiguous function overloads
+drop function if exists public.claim_marketing_posts(integer, integer, text[]);
+
 -- Replace claim_marketing_posts with look-ahead window support (default 24 hours)
 create or replace function public.claim_marketing_posts(
   p_limit integer default 10,
