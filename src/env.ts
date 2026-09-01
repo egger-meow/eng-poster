@@ -29,20 +29,12 @@ const schema = z.object({
   PAPER_ENGLISH_BASE_URL: z
     .preprocess((v) => (typeof v === 'string' && v.trim() === '' ? 'https://paperbond.jjmowlab.com' : v), z.string().url().default('https://paperbond.jjmowlab.com')),
   SUPABASE_URL: optionalUrl,
-
   SUPABASE_SERVICE_ROLE_KEY: optionalString,
-  FACEBOOK_PAGE_ID: optionalString,
-  FACEBOOK_PAGE_ACCESS_TOKEN: optionalString,
-  INSTAGRAM_USER_ID: optionalString,
-  INSTAGRAM_ACCESS_TOKEN: optionalString,
-  INSTAGRAM_APP_ID: optionalString,
-  INSTAGRAM_APP_SECRET: optionalString,
-  THREADS_USER_ID: optionalString,
-  THREADS_ACCESS_TOKEN: optionalString,
-  THREADS_APP_ID: optionalString,
-  THREADS_APP_SECRET: optionalString,
-  META_GRAPH_VERSION: z
-    .preprocess((v) => (typeof v === 'string' && v.trim() === '' ? 'v22.0' : v), z.string().regex(/^v\d+\.\d+$/).default('v22.0')),
+
+  BUFFER_API_KEY: optionalString,
+  BUFFER_FACEBOOK_CHANNEL_ID: optionalString,
+  BUFFER_INSTAGRAM_CHANNEL_ID: optionalString,
+  BUFFER_THREADS_CHANNEL_ID: optionalString,
 });
 
 export type Environment = z.infer<typeof schema>;
@@ -56,5 +48,3 @@ export function requireEnv<K extends keyof Environment>(key: K): NonNullable<Env
   }
   return value as NonNullable<Environment[K]>;
 }
-
-

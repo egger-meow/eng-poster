@@ -1,2 +1,5 @@
-import type { Platform, SocialPublisher } from '../types.js'; import { FacebookPublisher } from './facebook.js'; import { InstagramPublisher } from './instagram.js'; import { ThreadsPublisher } from './threads.js';
-export const publisherFor=(p:Platform):SocialPublisher=>p==='facebook'?new FacebookPublisher():p==='instagram'?new InstagramPublisher():new ThreadsPublisher();
+import type { Platform, SocialPublisher } from '../types.js';
+import { BufferPublisher } from './buffer.js';
+
+export const publisherFor = (p: Platform): SocialPublisher => new BufferPublisher(p);
+export { BufferClient, BufferPublisher } from './buffer.js';

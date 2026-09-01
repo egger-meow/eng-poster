@@ -9,7 +9,7 @@ import { dispatchDue } from './orchestration/dispatch-due.js';
 import { tokenHealth } from './orchestration/token-health.js';
 import { ingestAssets } from './media/ingest.js';
 import { dryRun } from './orchestration/dry-run.js';
-import { publisherFor } from './platforms/index.js';
+import { BufferClient, publisherFor } from './platforms/index.js';
 import { env } from './env.js';
 import { MarketingRepository } from './db/repository.js';
 
@@ -36,7 +36,6 @@ program
     console.log(JSON.stringify(await checkQueueHealth(Number(o.hours)), null, 2));
   });
 
-
 program
   .command('dispatch-due')
   .action(async () => console.log(JSON.stringify(await dispatchDue(), null, 2)));
@@ -46,9 +45,30 @@ program
   .action(async () => console.log(JSON.stringify(await tokenHealth(), null, 2)));
 
 program
+  .command('buffer-channels')
+  .description('Discover connected Buffer organizations and channels')
+  .action(async () => {
+    const client = new BufferClient();
+    const channels = await client.getChannels();
+    const safeOutput = channels.map((ch) => ({
+      channelId: ch.id,
+      name: ch.name,
+      service: ch.service,
+      displayName: ch.displayName ?? null,
+      organizationId: ch.organizationId ?? null,
+      organizationName: ch.organizationName ?? null,
+      isDisconnected: ch.isDisconnected ?? false,
+      isLocked: ch.isLocked ?? false,
+    }));
+    console.log(JSON.stringify(safeOutput, null, 2));
+  });
+
+program
   .command('ingest-assets')
   .option('--root <path>', 'Directory root to ingest assets from')
-  .action(async (o) => console.log(JSON.stringify({ ingested: await ingestAssets(o.root ? [o.root] : undefined) }, null, 2)));
+  .action(async (o) =>
+    console.log(JSON.stringify({ ingested: await ingestAssets(o.root ? [o.root] : undefined) }, null, 2))
+  );
 
 program
   .command('dry-run')
@@ -94,4 +114,3 @@ program
   });
 
 await program.parseAsync();
-
