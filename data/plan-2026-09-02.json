@@ -1,0 +1,132 @@
+{
+  "planDate": "2026-09-02",
+  "source": "chatgpt_scheduler",
+  "archetype": "educational_value",
+  "topic": "會考英文閱讀 60 分鐘塞 3,000 字：為什麼死背單字的孩子一定寫不完？",
+  "audience": "Taiwan parents grade 5-8",
+  "campaignSlug": "always-on",
+  "researchSnapshot": {
+    "query": "國中教育會考 英語科 閱讀測驗 總字數 題數 單字量 心測中心 108課綱",
+    "sources": [
+      {
+        "url": "https://cap.rcpet.edu.tw/",
+        "title": "國立臺灣師範大學心理與教育測驗研究發展中心 — 國中教育會考",
+        "retrievedAt": "2026-09-02T02:15:00Z",
+        "notes": [
+          "國中教育會考英語科閱讀測驗時間為 60 分鐘，題數約 40 至 45 題，總字數約 3,000 至 3,300 字",
+          "教育部 108 課綱國中英語文核心基礎字彙為 1,200 字，常用字彙為 2,000 字",
+          "閱讀測驗著重情境理解、圖表整合與邏輯推論，篇章題組佔 20 至 30 題"
+        ]
+      },
+      {
+        "url": "https://paperbond.jjmowlab.com",
+        "title": "紙屬英文 Paper English 官方網站",
+        "retrievedAt": "2026-09-02T02:15:00Z",
+        "notes": [
+          "紙屬英文每週為國小高年級與國中生客製專屬紙本教材，依孩子興趣、進度與表現動態編排",
+          "回歸紙本手寫練習，免除 3C 螢幕與通知干擾，並附家長專屬答案本"
+        ]
+      }
+    ],
+    "factualNotes": [
+      "會考英語閱讀測驗 60 分鐘內需閱讀約 3,000 至 3,300 字並完成 40 多題",
+      "國中階段課綱基礎字彙為 1,200 字、常用字彙 2,000 字",
+      "篇章題組佔 20 至 30 題，包含多篇長文、圖表整合與跨領域情境",
+      "紙屬英文依學生興趣每週動態生成專屬紙本英文教材並附家長答案本"
+    ]
+  },
+  "provenance": {
+    "schedulerPromptVersion": "v2.1",
+    "generationTimestamp": "2026-09-02T02:15:00Z",
+    "queueDaysAhead": 0
+  },
+  "posts": [
+    {
+      "platform": "threads",
+      "requestedWindow": "11:30-13:30",
+      "assetMode": "text_only",
+      "copyText": "會考英文最殘忍的真相：60 分鐘要讀完 3,000 字，你家小孩如果還在腦袋裡一個字一個字翻成中文，基本上就是去考場當炮灰。😅\n\n心測中心數據很清楚，整份題本包含長篇閱讀跟題組超過 3,000 字，扣掉畫卡，每分鐘至少要吞下 60 個字。\n那些逼小孩一天吞 30 個單字、默寫死背的家長，真的可以醒醒了。\n上考場遇到兩頁跨頁閱讀，小孩大腦 CPU 早就被單字轉換燒光，連題目問什麼都沒力氣想。\n\n英文閱讀速度從來不是靠背字典堆出來的，而是看「語塊（chunking）」的能力。\n不訓練他整段一眼抓重點，逼他抄再多單字也是在做白工。",
+      "claimManifest": [
+        {
+          "text": "國中教育會考英語科閱讀測驗 60 分鐘總字數超過 3,000 字",
+          "kind": "researched_fact",
+          "sourceUrls": [
+            "https://cap.rcpet.edu.tw/"
+          ]
+        },
+        {
+          "text": "逼小孩逐字死背單字無法應付會考長篇閱讀題組速度要求",
+          "kind": "opinion",
+          "sourceUrls": []
+        },
+        {
+          "text": "英文閱讀速度關鍵在於一眼辨識語塊而非單字逐字翻譯",
+          "kind": "opinion",
+          "sourceUrls": []
+        }
+      ],
+      "ctaMode": "none"
+    },
+    {
+      "platform": "threads",
+      "requestedWindow": "19:00-22:00",
+      "assetMode": "link_preview",
+      "copyText": "小孩看整晚動漫攻略可以嗑一萬字，看到英文閱讀題本三行就開始靈魂出竅。\n\n國中課綱常用字彙才 2,000 字，會考的文章題材卻五花八門。\n孩子讀不下去根本不是他不爭氣，而是課本裡那些「Tom and Mary 去公園野餐」的故事無聊到反人類。\n大腦只會對自己真正好奇的事情加速。\n\n如果他喜歡 NBA、Minecraft、動漫或科學，把會考單字揉進他熱愛的世界裡，他自己就會拿筆在紙上劃掉看懂。\n別再用三十年前痛苦的死背方式折磨孩子了。\n讓孩子找回主動讀英文的渴望：",
+      "claimManifest": [
+        {
+          "text": "教育部國中課綱常用字彙為 2,000 字",
+          "kind": "researched_fact",
+          "sourceUrls": [
+            "https://cap.rcpet.edu.tw/"
+          ]
+        },
+        {
+          "text": "孩子對缺乏興趣的情境課文容易產生排斥與疲勞",
+          "kind": "opinion",
+          "sourceUrls": []
+        },
+        {
+          "text": "紙屬英文能將會考核心單字與句型揉合進學生感興趣的題材客製每週教材",
+          "kind": "brand_fact",
+          "sourceUrls": [
+            "https://paperbond.jjmowlab.com"
+          ]
+        }
+      ],
+      "ctaMode": "soft",
+      "destinationUrl": "https://paperbond.jjmowlab.com"
+    },
+    {
+      "platform": "instagram",
+      "requestedWindow": "19:00-21:30",
+      "assetMode": "image_post",
+      "copyText": "【會考英文 60 分鐘塞 3,000 字，為什麼死背單字的孩子先崩潰？】\n\n很多家長困惑：國小英文考試明明都 90 幾分，怎麼升上國中課本一翻開，閱讀題組全軍覆沒？\n\n心測中心官方數據很殘酷：\n國中會考英文閱讀測驗 60 分鐘要消化 3,000 多字、回答 40 多題。\n如果孩子還在用「逐字翻中文」的方式閱讀，大腦 CPU 根本跑不動。\n\n想讓孩子讀得快又準，關鍵只有兩步：\n1️⃣ 語塊拆解（Chunking）：把句子看成意群，不再一個字一個字卡關。\n2️⃣ 回歸紙本手寫：學習回到紙上，拿起鉛筆圈出句型，少一份 3C 通知干擾。\n\n「紙屬英文」每週把國中會考核心單字與句型，客製進孩子熱愛的題材裡（動漫、電競、科學、日常生活）。\n更附上家長專屬答案本與解析，陪讀不再心力交瘁。\n\n👉 立即點擊個人檔案（Bio）連結，免費體驗首週客製教材！\n.\n#國中英文 #國中會考 #108課綱 #英文閱讀 #紙屬英文 #親子共讀",
+      "claimManifest": [
+        {
+          "text": "國中會考英語閱讀測驗 60 分鐘約 3,000 多字、40 多題",
+          "kind": "researched_fact",
+          "sourceUrls": [
+            "https://cap.rcpet.edu.tw/"
+          ]
+        },
+        {
+          "text": "逐字翻譯拖慢長篇閱讀速度，語塊拆解與紙本手寫能提升專注與理解",
+          "kind": "opinion",
+          "sourceUrls": []
+        },
+        {
+          "text": "紙屬英文每週依學生興趣客製紙本英文教材並附家長專屬答案本",
+          "kind": "brand_fact",
+          "sourceUrls": [
+            "https://paperbond.jjmowlab.com"
+          ]
+        }
+      ],
+      "visualConcept": "student_pdf_parent_answer",
+      "mediaAssetId": "63a1f053-7774-41f5-a4fb-00f4e13000a5",
+      "mediaUrl": "https://ykzszjrqynrhgdhoeovo.supabase.co/storage/v1/object/public/marketing-media/manual/ba/ba532bb4b645c05844831607e1c5f054d18fe54f7e068060f92de40578d83e35-student-pdf-parent-answer.png",
+      "ctaMode": "soft",
+      "destinationUrl": "https://paperbond.jjmowlab.com"
+    }
+  ]
+}
