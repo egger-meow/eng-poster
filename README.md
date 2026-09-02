@@ -100,6 +100,20 @@ Each post explicitly specifies its `asset_mode` (`text_only`, `image_post`, `lin
 - **Instagram**: Strictly `image_post` only.
   - Media asset is mandatory; caption has no raw URL; the destination URL is dispatched as the first comment (`metadata.instagram.firstComment`).
 
+## Authoritative Copy-Length Contract & 1:1 Rolling Mix
+
+The engine enforces an approximately **1:1 LONG : SHORT** content mix across rolling production history:
+- **Short mode** (`copyLengthMode: 'short'`): Genuinely short, punchy, stop-scroll, 1–4 lines, 1 provocative thought or punchline only, 1–4 emojis for emotional punctuation. No filler, no generic AI intros.
+  - Threads: 5–100 characters (max 140)
+  - Facebook: 10–150 characters (max 200)
+  - Instagram: 30–180 characters (max 220)
+- **Long mode** (`copyLengthMode: 'long'`): High-density, explanatory, concrete examples, tight structure: `hook → concrete evidence → useful insight → stop`. No generic setup or conclusion filler.
+  - Threads: 150–350 characters (max 500)
+  - Facebook: 250–800 characters (max 63,206)
+  - Instagram: 180–400 characters (max 2,200)
+
+The planner deterministically selects whichever mode is currently underrepresented via `selectCopyLengthMode` and `pnpm social next-queue-gap`.
+
 ## Safety and failure behavior
 
 - `PAUSE_ALL_POSTING=true` stops all dispatch; per-platform switches are evaluated again at dispatch time.

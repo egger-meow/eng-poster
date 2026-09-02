@@ -7,7 +7,8 @@ import { validatePreparedPost } from '../content/gates.js';
 import { MarketingRepository } from '../db/repository.js';
 import { selectAsset } from '../media/select.js';
 import { idempotencyKey, newId, sha256 } from '../shared/hash.js';
-import type { AssetMode, Claim, Platform, PreparedPost, ResearchSnapshot } from '../types.js';
+import type { AssetMode, Claim, CopyLengthMode, Platform, PreparedPost, ResearchSnapshot } from '../types.js';
+import { classifyCopyLengthMode } from '../content/ranges.js';
 
 const claimSchema = z.object({
   text: z.string().min(1),
@@ -19,6 +20,8 @@ export const enqueuePostSchema = z.object({
   platform: z.enum(['facebook', 'instagram', 'threads']),
   assetMode: z.enum(['text_only', 'image_post', 'link_preview']).optional(),
   asset_mode: z.enum(['text_only', 'image_post', 'link_preview']).optional(),
+  copyLengthMode: z.enum(['short', 'long']).optional(),
+  copy_length_mode: z.enum(['short', 'long']).optional(),
   copyText: z.string().min(1),
   claimManifest: z.array(claimSchema).default([]),
   visualConcept: z.string().nullable().optional(),
@@ -241,11 +244,17 @@ export async function enqueuePlan(
     const window = postInput.requestedWindow ?? cfg.windows[(slotNumber - 1) % cfg.windows.length]!;
     const scheduledFor = postInput.scheduledFor ?? chooseSlot(input.planDate, window, config.timezone, occupied);
 
+    const copyLengthMode: CopyLengthMode =
+      postInput.copyLengthMode ??
+      postInput.copy_length_mode ??
+      classifyCopyLengthMode(postInput.copyText, platform);
+
     const preparedPost: PreparedPost = {
       id: postId,
       contentPlanId: planId,
       platform,
       assetMode,
+      copyLengthMode,
       copyText: postInput.copyText,
       destinationUrl,
       mediaUrl,

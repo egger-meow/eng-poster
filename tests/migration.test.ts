@@ -38,5 +38,14 @@ describe('database lease and security contract', () => {
     expect(alterSql).toContain('provider_scheduled_at timestamptz');
     expect(alterSql).toContain('provider_status text');
   });
+
+  it('enforces copy_length_mode check constraint in forward migration', () => {
+    const baseSql = readFileSync('supabase/migrations/20260831000000_marketing_engine.sql', 'utf8').toLowerCase();
+    expect(baseSql).not.toContain('copy_length_mode');
+
+    const alterSql = readFileSync('supabase/migrations/20260902010000_copy_length_mode.sql', 'utf8').toLowerCase();
+    expect(alterSql).toContain("copy_length_mode in ('short', 'long')");
+  });
 });
+
 

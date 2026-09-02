@@ -1,7 +1,8 @@
 import { DateTime } from 'luxon';
 import { loadConfig, type AppConfig } from '../config.js';
 import { MarketingRepository } from '../db/repository.js';
-import type { Platform } from '../types.js';
+import { selectCopyLengthMode } from '../content/selection.js';
+import type { CopyLengthMode, Platform } from '../types.js';
 
 export interface MissingSlot {
   platform: Platform;
@@ -13,6 +14,7 @@ export interface NextQueueGapResult {
   missing: MissingSlot[];
   queueDaysAhead: number;
   message?: string;
+  recommendedCopyLengthMode?: CopyLengthMode;
 }
 
 export interface NextQueueGapOptions {
@@ -127,10 +129,17 @@ export async function findNextQueueGap(
     }
 
     if (missingSlotsForDay.length > 0) {
+      let recommendedCopyLengthMode: CopyLengthMode | undefined;
+      if (typeof repo.getRecentCopyLengthModes === 'function') {
+        const recentModes = await repo.getRecentCopyLengthModes();
+        recommendedCopyLengthMode = selectCopyLengthMode(recentModes);
+      }
+
       return {
         targetDate: dateStr,
         missing: missingSlotsForDay,
         queueDaysAhead: dayOffset,
+        ...(recommendedCopyLengthMode ? { recommendedCopyLengthMode } : {}),
       };
     }
   }

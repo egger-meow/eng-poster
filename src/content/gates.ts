@@ -1,9 +1,27 @@
-import type { PreparedPost, ValidationResult } from '../types.js';
+import type { CopyLengthMode, PreparedPost, ValidationResult } from '../types.js';
 import { hasRequiredUtm } from './utm.js';
+import {
+  COPY_LENGTH_RANGES,
+  classifyCopyLengthMode,
+  getContentLength,
+  URL_REGEX,
+} from './ranges.js';
 
 const limits = { facebook: 63206, instagram: 2200, threads: 500 } as const;
 
-export const URL_REGEX = /(?:https?:\/\/|www\.)[^\s<>()]+|[a-zA-Z0-9-]+\.(?:com|edu|org|net|gov|tw|io|app|co|ai|me|cc)(?:\/[^\s<>()]*)?/gi;
+export { URL_REGEX };
+
+export const FORBIDDEN_AI_INTROS = [
+  '很多家長都會發現',
+  '在現今教育環境中',
+  '其實學英文最重要的是',
+  '你是否曾經想過',
+] as const;
+
+export const FORBIDDEN_FILLER_CONCLUSIONS = [
+  '總而言之',
+  '這就是為什麼',
+] as const;
 
 export function extractUrls(text: string): string[] {
   const matches = text.match(URL_REGEX);
@@ -46,6 +64,63 @@ export function validatePreparedPost(post: PreparedPost): ValidationResult {
   if (!copy) errors.push('copy is empty');
   if (copy.length > limits[post.platform]) errors.push(`copy exceeds ${limits[post.platform]} characters`);
   if (/{{[^}]+}}|\[TBD\]|<insert/i.test(copy)) errors.push('copy has unresolved template variables');
+
+  // Copy length mode and bounds
+  const effectiveLengthMode: CopyLengthMode =
+    post.copyLengthMode ?? classifyCopyLengthMode(copy, post.platform);
+  const contentLength = getContentLength(copy);
+
+  if (effectiveLengthMode === 'short') {
+    const maxLimit = COPY_LENGTH_RANGES[post.platform].short.maxLimit;
+    if (contentLength > maxLimit) {
+      errors.push(
+        `copy in short mode exceeds maximum limit of ${maxLimit} characters (got ${contentLength})`
+      );
+    }
+
+    // Short mode quality gate: no generic AI intros
+    for (const phrase of FORBIDDEN_AI_INTROS) {
+      if (copy.includes(phrase)) {
+        errors.push(`short mode copy must not contain generic AI intro phrase: "${phrase}"`);
+      }
+    }
+
+    // Short mode quality gate: no conclusion filler
+    for (const phrase of FORBIDDEN_FILLER_CONCLUSIONS) {
+      if (copy.includes(phrase)) {
+        errors.push(`short mode copy must not contain conclusion filler: "${phrase}"`);
+      }
+    }
+
+    // Short mode quality gate: avoid listicles
+    const bulletLines = copy
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => /^(?:[-*•]|\d+\.)\s+/.test(l));
+    if (bulletLines.length >= 3) {
+      errors.push('short mode copy must not contain multi-item listicles');
+    }
+  } else if (effectiveLengthMode === 'long') {
+    // Long mode quality gate: tighten copy, eliminate empty filler
+    if (copy.includes('在現今教育環境中')) {
+      errors.push('long mode copy must not contain generic setup phrase: "在現今教育環境中"');
+    }
+    for (const phrase of FORBIDDEN_FILLER_CONCLUSIONS) {
+      if (copy.includes(phrase)) {
+        errors.push(`long mode copy must avoid generic conclusion phrase: "${phrase}"`);
+      }
+    }
+  }
+
+  // Claim safety: absolute outcome guarantee checks
+  if (/(?:保證|承諾).*(?:A\+\+|進步|考上)/i.test(copy)) {
+    const hasRhetoricalOrSource = post.claimManifest.some(
+      (c) => c.kind === 'opinion' || c.kind === 'rhetorical' || c.sourceUrls.length > 0
+    );
+    if (!hasRhetoricalOrSource) {
+      errors.push('guaranteed outcome claims are forbidden without verified evidence');
+    }
+  }
 
   // 2. Destination URL UTM verification
   if (post.destinationUrl && !hasRequiredUtm(post.destinationUrl, post.platform)) {

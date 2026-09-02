@@ -4,6 +4,9 @@ export type Platform = (typeof platforms)[number];
 export const assetModes = ['text_only', 'image_post', 'link_preview'] as const;
 export type AssetMode = (typeof assetModes)[number];
 
+export const copyLengthModes = ['short', 'long'] as const;
+export type CopyLengthMode = (typeof copyLengthModes)[number];
+
 export const postStatuses = [
   'scheduled',
   'claimed',
@@ -25,6 +28,7 @@ export interface PreparedPost {
   contentPlanId: string;
   platform: Platform;
   assetMode: AssetMode;
+  copyLengthMode?: CopyLengthMode | undefined;
   copyText: string;
   destinationUrl?: string | null;
   mediaUrl?: string | null;

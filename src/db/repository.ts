@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
-import type { AssetRecord, Platform, PreparedPost, ResearchSnapshot, TokenHealth } from '../types.js';
+import type { AssetRecord, CopyLengthMode, Platform, PreparedPost, ResearchSnapshot, TokenHealth } from '../types.js';
+import { classifyCopyLengthMode } from '../content/ranges.js';
 import { getSupabase } from './client.js';
 
 
@@ -48,22 +49,41 @@ export class MarketingRepository {
   }
 
   async schedule(post: PreparedPost, contentHash: string): Promise<void> {
+    const payload: Record<string, unknown> = {
+      id: post.id,
+      content_plan_id: post.contentPlanId,
+      platform: post.platform,
+      asset_mode: post.assetMode,
+      copy_text: post.copyText,
+      destination_url: post.destinationUrl,
+      media_asset_id: post.mediaAssetId,
+      scheduled_for: post.scheduledFor,
+      idempotency_key: post.idempotencyKey,
+      content_hash: contentHash,
+      claim_manifest: post.claimManifest,
+    };
+    if (post.copyLengthMode) {
+      payload.copy_length_mode = post.copyLengthMode;
+    }
+
     const { error } = await this.db.from('marketing_posts').upsert(
-      {
-        id: post.id,
-        content_plan_id: post.contentPlanId,
-        platform: post.platform,
-        asset_mode: post.assetMode,
-        copy_text: post.copyText,
-        destination_url: post.destinationUrl,
-        media_asset_id: post.mediaAssetId,
-        scheduled_for: post.scheduledFor,
-        idempotency_key: post.idempotencyKey,
-        content_hash: contentHash,
-        claim_manifest: post.claimManifest,
-      },
+      payload,
       { onConflict: 'idempotency_key', ignoreDuplicates: true }
     );
+    if (
+      error &&
+      (error.code === 'PGRST204' ||
+        error.message?.includes('copy_length_mode') ||
+        error.message?.includes('does not exist'))
+    ) {
+      delete payload.copy_length_mode;
+      const { error: retryErr } = await this.db.from('marketing_posts').upsert(
+        payload,
+        { onConflict: 'idempotency_key', ignoreDuplicates: true }
+      );
+      checked(true, retryErr);
+      return;
+    }
     checked(true, error);
   }
 
@@ -390,6 +410,27 @@ export class MarketingRepository {
 
     const assetRows = checked(assets, assetErr) ?? [];
     return assetRows.map((a: any) => a.concept).filter(Boolean);
+  }
+
+  async getRecentCopyLengthModes(
+    platform?: Platform,
+    limit = 20
+  ): Promise<CopyLengthMode[]> {
+    let query = this.db
+      .from('marketing_posts')
+      .select('copy_text, platform, scheduled_for, status')
+      .in('status', ['scheduled', 'claimed', 'provider_scheduled', 'published'])
+      .order('scheduled_for', { ascending: false })
+      .limit(limit);
+
+    if (platform) {
+      query = query.eq('platform', platform);
+    }
+
+    const { data, error } = await query;
+    const rows = checked(data, error) ?? [];
+
+    return rows.map((r: any) => classifyCopyLengthMode(r.copy_text, r.platform));
   }
 
   async getNextScheduledPost(fromIso: string): Promise<string | null> {

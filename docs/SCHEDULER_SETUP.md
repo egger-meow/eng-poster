@@ -54,7 +54,8 @@ Output:
     { "platform": "threads", "slot": 2 },
     { "platform": "instagram", "slot": 1 }
   ],
-  "queueDaysAhead": 3
+  "queueDaysAhead": 3,
+  "recommendedCopyLengthMode": "short"
 }
 ```
 
@@ -93,8 +94,9 @@ When writing content for `targetDate`:
 The safest, production-hardened pattern is:
 1. **AI Brain generates the JSON plan**: Following [docs/CHATGPT_SCHEDULER_PROMPT.md](file:///c:/IDEA/eng-poster/docs/CHATGPT_SCHEDULER_PROMPT.md), the AI outputs a structured JSON payload conforming to `EnqueuePlanInput` for `targetDate`.
 2. **Deterministic Validation Gate**: The engine's CLI (`pnpm social enqueue-plan`) sits in front of the database to enforce:
-   - Platform character limits (Threads: 500, Instagram: 2200, Facebook: 63206)
+   - Platform character limits and mode bounds (Threads: short 5–100, long 150–350; FB: short 10–150, long 250–800; IG: short 30–180, long 180–400)
    - Asset mode validation (`text_only`, `image_post`, `link_preview`)
+   - Copy length strategy (`copyLengthMode: 'short' | 'long'`) and quality gates (forbidding AI boilerplate intros/conclusions)
    - Mandatory source URLs on all factual/researched claims
    - Media selection with cooldowns (`visualConceptCooldownDays = 7`)
    - Platform weekly and daily caps
@@ -110,7 +112,7 @@ pnpm social enqueue-plan --input payload.json
 
 Or inline:
 ```bash
-pnpm social enqueue-plan --input '{"planDate":"2026-09-05","archetype":"pain_point","topic":"背單字挫折","posts":[{"platform":"threads","assetMode":"text_only","copyText":"孩子背了就忘...","claimManifest":[]}]}'
+pnpm social enqueue-plan --input '{"planDate":"2026-09-05","archetype":"pain_point","topic":"背單字挫折","posts":[{"platform":"threads","copyLengthMode":"short","assetMode":"text_only","copyText":"孩子背了就忘...","claimManifest":[]}]}'
 ```
 
 ---
@@ -149,6 +151,7 @@ pnpm social enqueue-plan --input '{"planDate":"2026-09-05","archetype":"pain_poi
 | `content_plan_id` | `uuid` | Foreign key referencing `marketing_content_plans(id)` |
 | `platform` | `text` | `'facebook' \| 'instagram' \| 'threads'` |
 | `asset_mode` | `text` | `'text_only' \| 'image_post' \| 'link_preview'` |
+| `copy_length_mode` | `text` | `'short' \| 'long'` |
 | `copy_text` | `text` | Authored post text |
 | `destination_url` | `text` | UTM URL or `NULL` if CTA is none |
 | `media_asset_id` | `uuid` | Foreign key referencing `marketing_assets(id)` (optional) |

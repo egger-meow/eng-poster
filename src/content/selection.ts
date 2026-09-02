@@ -94,3 +94,15 @@ export function selectCtaMode(
     currentRunChoices
   );
 }
+
+export function selectCopyLengthMode(
+  history: Array<'short' | 'long'> = [],
+  currentRunChoices: Array<'short' | 'long'> = []
+): 'short' | 'long' {
+  return selectWeighted(
+    { short: 0.5, long: 0.5 },
+    history,
+    currentRunChoices
+  );
+}
+
