@@ -25,21 +25,24 @@ supabase db reset
 pnpm social buffer-channels
 pnpm social token-health
 pnpm social ingest-assets
-pnpm social dry-run --platform threads
 pnpm social queue-health
+pnpm social next-queue-gap
 ```
 
 ## Commands
 
 ```bash
+# Calculate earliest future queue gap within 14-day stockpile horizon
+pnpm social next-queue-gap
+
 # Ingest and validate a content plan from ChatGPT Scheduler
 pnpm social enqueue-plan --input payload.json
 
 # Discover connected Buffer channels
 pnpm social buffer-channels
 
-# Check upcoming scheduled queue health
-pnpm social queue-health --hours 48
+# Check upcoming scheduled queue health across 14-day stockpile horizon
+pnpm social queue-health --hours 336
 
 # Dispatch due posts (runs every 30 mins in GitHub Actions)
 pnpm social dispatch-due

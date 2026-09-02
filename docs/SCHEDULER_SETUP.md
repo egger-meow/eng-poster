@@ -1,38 +1,97 @@
-# ChatGPT Scheduler Setup Guide
+# Paper English Social Engine — Queue-Aware Scheduler Setup Guide
 
-This document explains how to set up ChatGPT as the autonomous planning and research brain for the Paper English social marketing engine.
+This document explains how to operate the queue-aware content conveyor belt using ChatGPT Scheduled Tasks (or on-demand executor agents like Antigravity) as the autonomous research and planning brain, backed by deterministic queue-gap discovery and Buffer GraphQL publishing infrastructure.
 
 ---
 
-## 1. Architectural Overview
+## 1. Architectural Overview: The 14-Day Stockpile Conveyor Belt
 
 ```mermaid
 flowchart TD
-  subgraph Brain ["ChatGPT Scheduled Task (Daily)"]
-    A[Web Research] --> B[Positioning & Brand Rules]
-    B --> C[Inspect Supabase Recent Plans & Assets]
-    C --> D[Author Platform Copy & Claims]
-    D --> E[Write Plan & Posts to Supabase]
+  subgraph Discovery ["Deterministic Queue Analysis"]
+    QG[pnpm social next-queue-gap] -->|Finds Earliest Gap| GapInfo["targetDate, missing slots,\nqueueDaysAhead (0-14d)"]
   end
 
-  subgraph Engine ["Paper English Social Engine (GitHub Actions)"]
-    E -->|Supabase Database| F[(marketing_content_plans\nmarketing_posts\nmarketing_assets)]
-    G[Cron Dispatcher - every 30 min] -->|Claim Lease Locks| F
-    G --> H{Publishing Gates}
-    H -->|Dry Run / Live| I[Buffer GraphQL API\nFB / IG / Threads]
-    I --> J[Record Real Permalinks & Asset Usage]
-    J --> F
+  subgraph Brain ["Content Brain (ChatGPT / Antigravity)"]
+    GapInfo --> R{72h Freshness Gate}
+    R -->|queueDaysAhead <= 3| T[Timely Topic or Evergreen]
+    R -->|queueDaysAhead > 3| E[Strict Evergreen Archetypes]
+    T --> W[Web Research & Knowledge Base]
+    E --> W
+    W --> P[Author Native Copy for Missing Slots Only]
+    P --> JSON[EnqueuePlanInput JSON]
+  end
+
+  subgraph Engine ["Engine & Publishing Pipeline (GitHub Actions)"]
+    JSON -->|CLI Ingestion| EP[pnpm social enqueue-plan]
+    EP --> DB[(Supabase 14-Day Stockpile\nmarketing_content_plans\nmarketing_posts)]
+    QH[Daily Queue Health\npnpm social queue-health --hours 336] --> DB
+    Cron[30-min Dispatcher] -->|Lookahead Claim| DB
+    Cron --> Buffer[Buffer GraphQL API\nFB / IG / Threads]
+    Buffer --> Reconcile[Record Permalinks & Asset Usage]
+    Reconcile --> DB
   end
 ```
 
-The repository contains **zero runtime LLM calls**. ChatGPT handles planning and research; the repository provides hardened database management, asset tracking, safety switches, and Buffer publishing infrastructure.
+The repository contains **zero runtime LLM calls**. The AI brain handles planning and research; the repository provides deterministic queue discovery, database management, asset tracking, safety switches, and Buffer publishing infrastructure.
 
 ---
 
-## 2. Recommended Workflow: Deterministic Ingestion via `enqueue-plan`
+## 2. Queue Discovery: `pnpm social next-queue-gap`
+
+To prevent AI hallucination of dates or mental-math scheduling errors, the engine provides a deterministic queue-gap calculator:
+
+```bash
+pnpm social next-queue-gap
+```
+
+Output:
+```json
+{
+  "targetDate": "2026-09-05",
+  "missing": [
+    { "platform": "threads", "slot": 1 },
+    { "platform": "threads", "slot": 2 },
+    { "platform": "instagram", "slot": 1 }
+  ],
+  "queueDaysAhead": 3
+}
+```
+
+### How `next-queue-gap` Works:
+1. **Zone-Aware Iteration**: Checks calendar days from `today` (Day 0) up to 14 days out (`queueDaysAhead = 0..13`) in `Asia/Taipei`.
+2. **Platform Constraints**: Evaluates platform weekly targets, preferred days, and daily caps:
+   - **Threads**: 2 posts/day every day (slots 1 and 2).
+   - **Facebook**: 4 posts/week (Tue, Thu, Sat, Sun; slot 1).
+   - **Instagram**: 3 posts/week (Mon, Wed, Fri; slot 1).
+3. **Day-0 Expiration Protection**: For `today`, slots whose publishing windows have already passed are considered expired, preventing scheduling posts into the past.
+4. **Immediate Stop on Earliest Gap**: Returns the very first date that has any missing slots.
+5. **Full Queue Notification**: When the entire 14-day horizon is fully booked, returns:
+   ```json
+   {
+     "targetDate": null,
+     "missing": [],
+     "queueDaysAhead": 14,
+     "message": "Queue fully stocked across 14-day horizon"
+   }
+   ```
+
+Operators or automated scripts can run this command repeatedly. Each run fills one date, feeding the conveyor belt up to two weeks ahead.
+
+---
+
+## 3. Core Policy: 72h Timely-Topic Freshness Rule
+
+When writing content for `targetDate`:
+- **`queueDaysAhead <= 3` (within 72 hours)**: Eligible for the `timely_topic` archetype (breaking Taiwan education news, 108 課綱 announcements, exam trends, seasonal parent discussions) or evergreen archetypes.
+- **`queueDaysAhead > 3` (beyond 72 hours)**: **Strictly forbidden** to choose `timely_topic`. Must use evergreen archetypes (`pain_point`, `educational_value`, `product_proof`, `conversion_offer`) so that content scheduled up to 14 days in advance does not rot or become obsolete before publication.
+
+---
+
+## 4. Deterministic Ingestion via `enqueue-plan`
 
 The safest, production-hardened pattern is:
-1. **ChatGPT generates the JSON plan**: Following [docs/CHATGPT_SCHEDULER_PROMPT.md](file:///c:/IDEA/eng-poster/docs/CHATGPT_SCHEDULER_PROMPT.md), ChatGPT outputs a structured JSON payload conforming to `EnqueuePlanInput`.
+1. **AI Brain generates the JSON plan**: Following [docs/CHATGPT_SCHEDULER_PROMPT.md](file:///c:/IDEA/eng-poster/docs/CHATGPT_SCHEDULER_PROMPT.md), the AI outputs a structured JSON payload conforming to `EnqueuePlanInput` for `targetDate`.
 2. **Deterministic Validation Gate**: The engine's CLI (`pnpm social enqueue-plan`) sits in front of the database to enforce:
    - Platform character limits (Threads: 500, Instagram: 2200, Facebook: 63206)
    - Asset mode validation (`text_only`, `image_post`, `link_preview`)
@@ -51,45 +110,37 @@ pnpm social enqueue-plan --input payload.json
 
 Or inline:
 ```bash
-pnpm social enqueue-plan --input '{"planDate":"2026-09-02","archetype":"pain_point","topic":"背單字挫折","posts":[{"platform":"threads","assetMode":"text_only","copyText":"孩子背了就忘...","claimManifest":[]}]}'
+pnpm social enqueue-plan --input '{"planDate":"2026-09-05","archetype":"pain_point","topic":"背單字挫折","posts":[{"platform":"threads","assetMode":"text_only","copyText":"孩子背了就忘...","claimManifest":[]}]}'
 ```
 
 ---
 
-## 3. ChatGPT Scheduled Task Setup
+## 5. ChatGPT Scheduled Task Setup
 
 1. Open **ChatGPT** (with custom GPT or ChatGPT Scheduled Tasks enabled).
-2. Create a new Scheduled Task named `Paper English Daily Social Planner`.
-3. Set schedule recurrence: **Every day at 06:00 AM (Asia/Taipei)**.
+2. Create a new Scheduled Task named `Paper English Social Conveyor Planner`.
+3. Set schedule recurrence: **Every day at 06:00 AM (Asia/Taipei)** (or trigger on-demand).
 4. Attach or provide access to the repository's `knowledge/` directory:
    - Core guides: `audience.md`, `brand.md`, `claims.md`, `product.md`, `voice.md`.
    - All example files: `knowledge/examples/**` (`knowledge/examples/*.md`, used together as reference benchmarks across all platforms).
 5. Copy the entire contents of [docs/CHATGPT_SCHEDULER_PROMPT.md](file:///c:/IDEA/eng-poster/docs/CHATGPT_SCHEDULER_PROMPT.md) into the task instructions.
-6. Execution: The task outputs the validated plan JSON, which can be piped to `pnpm social enqueue-plan` via GitHub Actions or webhook.
-
-### Ingestion Validation Gates:
-- `planDate` validation (YYYY-MM-DD).
-- Platform character limits (Threads: 500, Instagram: 2200, Facebook: 63206).
-- Researched claims without source URLs are strictly rejected.
-- Instagram posts automatically select valid assets from `marketing_assets` if not supplied.
-- Daily (`hardDailyCap`) and weekly (`postsPerWeek`) platform caps are enforced.
-- Idempotency key (`${planDate}:${platform}:${slot}`) prevents duplicate scheduling on reruns.
+6. Execution: The task reads `next-queue-gap`, targets the missing slots, and outputs the validated plan JSON.
 
 ---
 
-## 4. Supabase Table Specifications for Direct Insertion
+## 6. Supabase Table Specifications
 
 ### Table: `public.marketing_content_plans`
 | Column | Type | Description |
 |---|---|---|
 | `id` | `uuid` | Primary key (`gen_random_uuid()`) |
-| `plan_date` | `date` | Target execution date (e.g. `2026-09-01`) |
+| `plan_date` | `date` | Target execution date (e.g. `2026-09-05`) |
 | `archetype` | `text` | One of `pain_point`, `educational_value`, `product_proof`, `timely_topic`, `conversion_offer` |
 | `topic` | `text` | Editorial topic title |
 | `audience` | `text` | Target audience (e.g. `Taiwan parents grade 5-8`) |
 | `campaign_slug` | `text` | Campaign slug (e.g. `always-on`) |
 | `research_snapshot` | `jsonb` | `{ "query": "...", "sources": [...], "factualNotes": [...] }` |
-| `provenance` | `jsonb` | Metadata including `source: "chatgpt_scheduler"`, prompt version, timestamp |
+| `provenance` | `jsonb` | Metadata including source, prompt version, `queueDaysAhead`, timestamp |
 
 ### Table: `public.marketing_posts`
 | Column | Type | Description |
@@ -123,12 +174,12 @@ pnpm social enqueue-plan --input '{"planDate":"2026-09-02","archetype":"pain_poi
 
 ---
 
-## 5. Queue Health Inspection
+## 7. 336h Queue Health Monitoring
 
-To verify upcoming posts exist in the publishing pipeline without authoring anything:
+To verify the full 14-day stockpile horizon (336 hours) without authoring anything:
 
 ```bash
-pnpm social queue-health --hours 48
+pnpm social queue-health --hours 336
 ```
 
-The GitHub Actions workflow [.github/workflows/queue-health.yml](file:///c:/IDEA/eng-poster/.github/workflows/queue-health.yml) automatically runs daily to report queue health.
+The GitHub Actions workflow [.github/workflows/queue-health.yml](file:///c:/IDEA/eng-poster/.github/workflows/queue-health.yml) automatically runs daily to report on 336 hours of upcoming posts.

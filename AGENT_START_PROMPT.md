@@ -15,6 +15,7 @@ Core contract:
 - Supabase durable marketing state + public marketing media storage.
 - OpenAI Responses API hosted web search for current research.
 - Platform-native independent copy for Facebook, Instagram, Threads.
+- Queue-aware conveyor belt architecture: 14-day stockpile horizon, deterministic earliest future queue gap (`pnpm social next-queue-gap`), 72h timely-topic freshness rule (no timely topics > 72h out; enforce evergreen archetypes), and 336h queue health monitoring.
 - Fully automatic publishing, no approval queue.
 - Hybrid media pipeline: manual assets > real product screenshot > branded template > AI-generated image > fallback.
 - Manual asset drop folders must work exactly as documented.
