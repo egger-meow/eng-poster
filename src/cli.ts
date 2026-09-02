@@ -5,6 +5,7 @@ import { Command } from 'commander';
 import { platforms, type Platform } from './types.js';
 import { enqueuePlan } from './orchestration/enqueue-plan.js';
 import { checkQueueHealth } from './orchestration/queue-health.js';
+import { findNextQueueGap } from './orchestration/next-queue-gap.js';
 import { dispatchDue } from './orchestration/dispatch-due.js';
 import { tokenHealth } from './orchestration/token-health.js';
 import { ingestAssets } from './media/ingest.js';
@@ -14,6 +15,14 @@ import { env } from './env.js';
 import { MarketingRepository } from './db/repository.js';
 
 const program = new Command().name('social').description('Paper English organic social engine');
+
+program
+  .command('next-queue-gap')
+  .description('Find the earliest future queue gap date and missing platform slots within the stockpile horizon')
+  .option('--days <days>', 'Stockpile horizon in days to inspect', '14')
+  .action(async (o) => {
+    console.log(JSON.stringify(await findNextQueueGap({ horizonDays: Number(o.days) }), null, 2));
+  });
 
 program
   .command('enqueue-plan')
@@ -31,7 +40,7 @@ program
 
 program
   .command('queue-health')
-  .option('--hours <hours>', 'Hours ahead to inspect schedule', '48')
+  .option('--hours <hours>', 'Hours ahead to inspect schedule', '336')
   .action(async (o) => {
     console.log(JSON.stringify(await checkQueueHealth(Number(o.hours)), null, 2));
   });

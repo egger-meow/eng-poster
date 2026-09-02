@@ -80,6 +80,17 @@ describe('queue health inspection', () => {
     expect(report.staleLocalCount).toBe(2);
     expect(report.message).toContain('WARNING: 2 local scheduled posts are overdue/stale');
   });
+
+  it('defaults to 336 hours (14-day stockpile horizon)', async () => {
+    const mockRepo = {
+      countPostsForDateRange: async () => 1,
+      getNextScheduledPost: async () => '2026-09-02T12:00:00+08:00',
+    } as unknown as MarketingRepository;
+
+    const report = await checkQueueHealth(undefined, mockRepo);
+    expect(report.upcomingHours).toBe(336);
+    expect(report.message).toContain('336h');
+  });
 });
 
 

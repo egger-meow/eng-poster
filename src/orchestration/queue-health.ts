@@ -23,7 +23,7 @@ export interface QueueHealthReport {
 }
 
 export async function checkQueueHealth(
-  hours = 48,
+  hours = 336,
   repo = new MarketingRepository()
 ): Promise<QueueHealthReport> {
   const config = await loadConfig();
