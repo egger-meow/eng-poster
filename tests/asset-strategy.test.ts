@@ -69,18 +69,27 @@ describe('post asset strategy and first-comment/reply modeling', () => {
       expect(validatePreparedPost(post).valid).toBe(true);
     });
 
-    it('rejects Facebook image_post when body includes raw URL by default', () => {
+    it('accepts Facebook image_post with media and canonical URL in main body', () => {
       const post = basePost({
         platform: 'facebook',
         assetMode: 'image_post',
         copyText: '查看最新進度：https://paperbond.jjmowlab.com 了解詳情。',
       });
       const result = validatePreparedPost(post);
-      expect(result.valid).toBe(false);
-      expect(result.errors).toContain('facebook image_post must not include raw URL in body by default');
+      expect(result.valid).toBe(true);
     });
 
-    it('accepts valid Facebook text_only post with no media and no canonical URL', () => {
+    it('accepts valid Facebook text_only post with no media and canonical URL', () => {
+      const post = basePost({
+        platform: 'facebook',
+        assetMode: 'text_only',
+        mediaUrl: null,
+        mediaAssetId: null,
+      });
+      expect(validatePreparedPost(post).valid).toBe(true);
+    });
+
+    it('rejects Facebook text_only post when canonical destination URL is missing', () => {
       const post = basePost({
         platform: 'facebook',
         assetMode: 'text_only',
@@ -88,29 +97,18 @@ describe('post asset strategy and first-comment/reply modeling', () => {
         mediaAssetId: null,
         destinationUrl: null,
       });
-      expect(validatePreparedPost(post).valid).toBe(true);
-    });
-
-    it('rejects Facebook text_only post when destination URL is attached', () => {
-      const post = basePost({
-        platform: 'facebook',
-        assetMode: 'text_only',
-        mediaUrl: null,
-        mediaAssetId: null,
-      });
       const result = validatePreparedPost(post);
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('facebook text_only must not have a canonical destination URL');
+      expect(result.errors).toContain('facebook post requires a canonical Paper English destination URL');
     });
 
     // Threads
-    it('accepts valid Threads text_only, image_post, and link_preview modes', () => {
+    it('accepts valid Threads text_only, image_post, and link_preview modes with canonical destination URL', () => {
       const textOnly = basePost({
         platform: 'threads',
         assetMode: 'text_only',
         mediaUrl: null,
         mediaAssetId: null,
-        destinationUrl: null,
       });
       expect(validatePreparedPost(textOnly).valid).toBe(true);
 
@@ -129,15 +127,17 @@ describe('post asset strategy and first-comment/reply modeling', () => {
       expect(validatePreparedPost(linkPreview).valid).toBe(true);
     });
 
-    it('rejects Threads image_post when raw URL is embedded in body', () => {
+    it('rejects Threads text_only post when canonical destination URL is missing', () => {
       const post = basePost({
         platform: 'threads',
-        assetMode: 'image_post',
-        copyText: '點擊體驗 paperbond.jjmowlab.com 來看看',
+        assetMode: 'text_only',
+        mediaUrl: null,
+        mediaAssetId: null,
+        destinationUrl: null,
       });
       const result = validatePreparedPost(post);
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('threads image_post must not include raw URL in body by default');
+      expect(result.errors).toContain('threads post requires a canonical Paper English destination URL');
     });
 
     it('rejects Threads link_preview post with multiple URLs in body', () => {
@@ -193,7 +193,7 @@ describe('post asset strategy and first-comment/reply modeling', () => {
   });
 
   describe('attribution and formatting helpers', () => {
-    it('formatPublishCopyText appends canonical URL only when link_preview and not already present', () => {
+    it('formatPublishCopyText appends canonical URL across all asset modes on Facebook and Threads', () => {
       const linkPost = basePost({
         platform: 'facebook',
         assetMode: 'link_preview',
@@ -216,7 +216,15 @@ describe('post asset strategy and first-comment/reply modeling', () => {
         copyText: 'Clean image copy',
         destinationUrl: 'https://paperbond.jjmowlab.com/?utm_source=facebook',
       });
-      expect(formatPublishCopyText(imagePost)).toBe('Clean image copy');
+      expect(formatPublishCopyText(imagePost)).toBe('Clean image copy\n\nhttps://paperbond.jjmowlab.com/?utm_source=facebook');
+
+      const textOnly = basePost({
+        platform: 'threads',
+        assetMode: 'text_only',
+        copyText: 'Threads opinion hook',
+        destinationUrl: 'https://paperbond.jjmowlab.com/?utm_source=threads',
+      });
+      expect(formatPublishCopyText(textOnly)).toBe('Threads opinion hook\n\nhttps://paperbond.jjmowlab.com/?utm_source=threads');
     });
 
     it('formatFirstComment creates comment text only for image_post when ctaMode is not none', () => {
@@ -325,7 +333,7 @@ describe('post asset strategy and first-comment/reply modeling', () => {
       globalThis.fetch = originalFetch;
     });
 
-    it('FB image + CTA => media on main post, URL only in firstComment', async () => {
+    it('FB image + CTA => media on main post, canonical URL in main post body and optional secondary firstComment', async () => {
       const fbPost = basePost({
         platform: 'facebook',
         assetMode: 'image_post',
@@ -338,10 +346,9 @@ describe('post asset strategy and first-comment/reply modeling', () => {
       expect(interceptedInput.assets).toEqual([
         { image: { url: fbPost.mediaUrl } },
       ]);
-      // Main text contains clean copy without raw URL
-      expect(interceptedInput.text).toBe(fbPost.copyText);
-      expect(interceptedInput.text).not.toContain('https://');
-      // URL is positioned strictly in metadata.facebook.firstComment
+      // Main text contains canonical destination URL
+      expect(interceptedInput.text).toContain(fbPost.destinationUrl);
+      // URL is also positioned in metadata.facebook.firstComment as secondary attribution
       expect(interceptedInput.metadata?.facebook?.type).toBe('post');
       expect(interceptedInput.metadata?.facebook?.firstComment).toContain(fbPost.destinationUrl);
     });
@@ -368,7 +375,7 @@ describe('post asset strategy and first-comment/reply modeling', () => {
       expect(interceptedInput.metadata?.instagram?.firstComment).toContain(igPost.destinationUrl);
     });
 
-    it('Threads image + CTA => URL only in second thread item', async () => {
+    it('Threads image + CTA => media on main post, canonical URL in main body and optional secondary thread reply', async () => {
       const thPost = basePost({
         platform: 'threads',
         assetMode: 'image_post',
@@ -381,25 +388,24 @@ describe('post asset strategy and first-comment/reply modeling', () => {
       expect(interceptedInput.assets).toEqual([
         { image: { url: thPost.mediaUrl } },
       ]);
-      // Top-level text is clean copy without URL
-      expect(interceptedInput.text).toBe(thPost.copyText);
-      expect(interceptedInput.text).not.toContain('https://');
+      // Top-level text has main-body URL
+      expect(interceptedInput.text).toContain(thPost.destinationUrl);
       // Threads metadata contains 2-item thread array
       expect(interceptedInput.metadata?.threads?.thread).toHaveLength(2);
-      expect(interceptedInput.metadata.threads.thread[0].text).toBe(thPost.copyText);
+      expect(interceptedInput.metadata.threads.thread[0].text).toContain(thPost.destinationUrl);
       expect(interceptedInput.metadata.threads.thread[1].text).toContain(thPost.destinationUrl);
     });
 
-    it('CTA none => no automatic first comment or reply', async () => {
+    it('CTA none => retains main-body URL on Facebook and Threads, but no automatic first comment or reply', async () => {
       // FB image + CTA none
       const fbNone = basePost({
         platform: 'facebook',
         assetMode: 'image_post',
         ctaMode: 'none',
-        destinationUrl: null,
       });
       const fbPub = new BufferPublisher('facebook');
       await fbPub.publish(fbNone);
+      expect(interceptedInput.text).toContain(fbNone.destinationUrl);
       expect(interceptedInput.metadata?.facebook?.firstComment).toBeUndefined();
 
       // IG image + CTA none
@@ -411,6 +417,7 @@ describe('post asset strategy and first-comment/reply modeling', () => {
       });
       const igPub = new BufferPublisher('instagram');
       await igPub.publish(igNone);
+      expect(interceptedInput.text).toBe(igNone.copyText);
       expect(interceptedInput.metadata?.instagram?.firstComment).toBeUndefined();
 
       // Threads image + CTA none
@@ -418,10 +425,10 @@ describe('post asset strategy and first-comment/reply modeling', () => {
         platform: 'threads',
         assetMode: 'image_post',
         ctaMode: 'none',
-        destinationUrl: null,
       });
       const thPub = new BufferPublisher('threads');
       await thPub.publish(thNone);
+      expect(interceptedInput.text).toContain(thNone.destinationUrl);
       expect(interceptedInput.metadata?.threads?.thread).toBeUndefined();
     });
 

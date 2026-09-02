@@ -89,9 +89,14 @@ Balance content archetypes across a rolling 30-day window:
 - Choose `copyLengthMode` (`short` or `long`) before writing based on the underrepresented mode in recent queued/published posts.
 
 Call-to-Action (CTA) Distribution:
-- `none` (50%): Pure value, thought leadership, or community discussion. `destination_url` is NULL.
-- `soft` (30%): "歡迎在個人檔案連結了解更多 / 留言分享你的看法". Includes UTM link.
-- `direct` (20%): Clear action invitation to request custom sample reading materials. Includes UTM link.
+- `none` (50%): Pure value, thought leadership, punchy hook, or community discussion. No explicit sales pitch, but the canonical Paper English URL is still present unobtrusively in the main post body (NO CTA != NO LINK).
+- `soft` (30%): "歡迎在個人檔案連結了解更多 / 留言分享你的看法" or subtle invitation + URL.
+- `direct` (20%): Clear action invitation to request custom sample reading materials + URL.
+
+### Authoritative Link Invariant:
+**EVERY FACEBOOK AND THREADS POST MUST LEAD BACK TO PAPER ENGLISH IN THE MAIN BODY.**
+Canonical base: `https://paperbond.jjmowlab.com`
+The engine automatically appends the attributed UTM URL to the main post body if omitted by the author. A post on Facebook or Threads without a visible Paper English link is a production quality failure.
 
 UTM Attribution Format:
 `https://paperbond.jjmowlab.com/?utm_source=<platform>&utm_medium=organic_social&utm_campaign=always-on&utm_content=<post_uuid>`
@@ -149,14 +154,14 @@ Extract verified factual notes and store authoritative source URLs.
    - Target roughly 50% short / 50% long.
 3. For each platform in `missing`, determine its `asset_mode`:
    - **`link_preview`** (Goal: website clicks & traffic):
-     - **Facebook & Threads**: Requires `destination_url`. Attached media is forbidden (`media_asset_id = NULL`). Destination URL stays in the main post text.
+     - **Facebook & Threads**: Attached media is forbidden (`media_asset_id = NULL`). Canonical destination URL stays in the main post text.
      - **Instagram**: NOT allowed.
    - **`image_post`** (Goal: brand trust, curriculum proof, visual hooks):
-     - **Facebook**: Attach media asset. Main body copy has **NO raw URL**. Destination URL goes into first comment (`firstComment`).
-     - **Threads**: Attach media asset. Main body copy has **NO raw URL**. Destination URL is published as a 2-item thread self-reply.
-     - **Instagram**: Attach media asset (mandatory). Caption has **NO raw URL**. Destination URL goes into first comment.
+     - **Facebook**: Attach media asset. Canonical destination URL is visibly in the main post body. Optional secondary first comment (`firstComment`) may provide additional context.
+     - **Threads**: Attach media asset. Canonical destination URL is visibly in the main post body. Optional secondary thread self-reply may provide additional context.
+     - **Instagram**: Attach media asset (mandatory). Caption has no clickable URL. Destination URL goes into first comment when CTA is soft or direct.
    - **`text_only`** (Goal: sharp pedagogical opinion, concise thought leadership, discussion prompt):
-     - **Threads & Facebook**: Pure copy. No media, no destination URL.
+     - **Threads & Facebook**: Pure copy with canonical destination URL visibly in the main body. No attached media.
      - **Instagram**: NOT allowed.
 4. Select or match an available visual asset from `marketing_assets` for `image_post`:
    - Prioritize `source in ('manual', 'screenshot')`.
@@ -176,22 +181,23 @@ Write copy tailored to each platform listed in `missing`:
   - Generic intros: 「很多家長都會發現」、「在現今教育環境中」、「其實學英文最重要的是」、「你是否曾經想過」
   - Explanatory filler, conclusion paragraphs, generic CTAs, multi-item listicles.
 - **Style Examples**:
-  - `不敢挑戰孩子英文 A++？😈\npaperbond.jjmowlab.com`
-  - `嚇到了... 😳\npaperbond.jjmowlab.com`
-  - `你不敢點啦 👀🔥\npaperbond.jjmowlab.com`
-  - `英文還在每天背 20 個單字喔 😭\n那真的有點硬欸。`
-  - `會考閱讀：\n你以為在考單字？\n它其實在考你到底看不看得懂。💀`
-  - `孩子看到英文長文就直接靈魂出竅 👻\n這才是要先處理的。`
+  - `不敢挑戰孩子英文 A++？😈\nhttps://paperbond.jjmowlab.com`
+  - `嚇到了... 😳\nhttps://paperbond.jjmowlab.com`
+  - `你不敢點啦 👀🔥\nhttps://paperbond.jjmowlab.com`
+  - `英文還在每天背 20 個單字喔 😭\n那真的有點硬欸。\n\nhttps://paperbond.jjmowlab.com`
+  - `會考閱讀：\n你以為在考單字？\n它其實在考你到底看不看得懂。💀\n\nhttps://paperbond.jjmowlab.com`
+  - `孩子看到英文長文就直接靈魂出竅 👻\n這才是要先處理的。\n\nhttps://paperbond.jjmowlab.com`
 
 #### LONG Post Quality Gate (`copyLengthMode: "long"`):
 - Tight, high-density explanatory style.
 - Must still open with a strong, scroll-stopping first-line hook.
 - Structure: **hook → concrete example/evidence → useful insight → stop**.
+- Ends cleanly with the canonical destination URL. Do NOT append generic CTA paragraphs merely to justify the URL.
 - Delete repeated thesis statements, empty empathy, generic setup paragraphs, and transitions like 「因此」、「總而言之」、「這就是為什麼」.
 
 #### Safety & URL Hygiene:
 - **Claim Safety**: Aggressive rhetorical hooks are allowed. NEVER guarantee A++, score increases, or outcomes. Factual claims require verified sources in `claimManifest`.
-- **Attribution & URL Hygiene**: For `image_post`, body copy has NO raw URL. For `link_preview`, canonical URL stays in body copy.
+- **Mandatory Main-Body Link Invariant**: EVERY Facebook and Threads post must visibly contain a canonical Paper English destination URL (`https://paperbond.jjmowlab.com...`) in the main post body. The engine automatically appends the attributed UTM URL to `copyText` if omitted. If the author includes a canonical URL, the engine normalizes it with attribution without duplicating. Optional first comment / thread reply is secondary attribution only and NEVER replaces the main-body link.
 
 ### Step 7: Output Deterministic Plan JSON
 Output the plan JSON payload adhering to `EnqueuePlanInput` for `targetDate`.

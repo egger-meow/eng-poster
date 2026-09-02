@@ -81,10 +81,20 @@ paperbond.jjmowlab.com
 - **Acceptable Energy Examples**: 😈 😭 💀 👀 🔥 😳 🤡 🫠 🧠 ⚡️ 📚 (not restricted to this list).
 - **Strict Rule**: Still forbid mechanical bullet emoji spam (e.g., repetitive emoji at the start of every bullet line like ✨ 1. ... ✨ 2. ...).
 
-## URL & CTA Behavior Across Asset Modes
-- **`link_preview`**: Main post keeps the canonical destination URL. For a short conversion/link post, it is completely acceptable for the visible copy to be almost entirely `<one punchy line>\n<URL>`.
-- **`image_post`**: Main post body has **NO raw URL**. Destination URL is dispatched automatically via first comment (FB/IG) or self-reply thread (Threads).
-- **`text_only`**: Pure copy. No attached media, no destination URL, no raw URLs in copy text.
+## Mandatory Main-Body Link Invariant & URL/CTA Behavior
+**EVERY FACEBOOK AND THREADS POST MUST LEAD BACK TO PAPER ENGLISH IN THE MAIN BODY.**
+Canonical base: `https://paperbond.jjmowlab.com`
+
+- **Facebook & Threads**:
+  - Main post body ALWAYS contains the canonical Paper English destination URL visibly.
+  - `text_only`: Pure text + canonical destination URL visibly in main body.
+  - `link_preview`: Pure text + canonical destination URL in main body.
+  - `image_post`: Media + copy + canonical destination URL visibly in main body. Optional first comment / thread reply is secondary attribution only.
+  - `ctaMode = 'none'` means no hard sales pitch, but the canonical link is still present cleanly and unobtrusively (NO CTA != NO LINK).
+  - Short posts: commonly `<one punchy line>\n\n<URL>`.
+  - Long posts: ends cleanly with `<URL>` without boilerplate justification paragraphs.
+- **Instagram**:
+  - `image_post` only. Caption has no clickable link; destination URL is dispatched via first comment when CTA is soft or direct.
 
 ## Claim Safety & Rhetorical Hooks
 - Aggressive rhetorical hooks are allowed (e.g. 「不敢挑戰孩子英文 A++？😈」).

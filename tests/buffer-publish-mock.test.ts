@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BufferClient, BufferPublisher } from '../src/platforms/buffer.js';
 import { PlatformError, classifyError } from '../src/platforms/base.js';
 import { attributedUrl } from '../src/content/utm.js';
+import { formatPublishCopyText } from '../src/content/gates.js';
 import type { PreparedPost } from '../src/types.js';
 
 describe('Buffer GraphQL publisher with mocked endpoints', () => {
@@ -192,14 +193,19 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
     });
     globalThis.fetch = fetchMock;
 
-    const fbPost: PreparedPost = { ...mockPost, assetMode: 'text_only', destinationUrl: null, mediaUrl: null };
+    const fbPost: PreparedPost = {
+      ...mockPost,
+      assetMode: 'text_only',
+      destinationUrl: attributedUrl('https://paperbond.jjmowlab.com', 'facebook', 'always-on', mockPost.id),
+      mediaUrl: null,
+    };
     const publisher = new BufferPublisher('facebook');
     const result = await publisher.publish(fbPost);
 
     expect(result.platformPostId).toBe('buf_post_100');
     expect(result.platformPostUrl).toBe('https://www.facebook.com/paperenglish/posts/100');
     expect(createPostInput.channelId).toBe('ch_fb_1');
-    expect(createPostInput.text).toBe(fbPost.copyText);
+    expect(createPostInput.text).toBe(formatPublishCopyText(fbPost));
     expect(createPostInput.mode).toBe('shareNow');
     expect(createPostInput.schedulingType).toBe('automatic');
     expect(createPostInput.assets).toBeUndefined();
@@ -262,7 +268,7 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
       platform: 'threads',
       assetMode: 'text_only',
       copyText: 'Threads thought leadership copy',
-      destinationUrl: null,
+      destinationUrl: attributedUrl('https://paperbond.jjmowlab.com', 'threads', 'always-on', mockPost.id),
       mediaUrl: null,
     };
     const publisher = new BufferPublisher('threads');
@@ -271,6 +277,7 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
     expect(result.platformPostId).toBe('buf_post_200');
     expect(result.platformPostUrl).toBe('https://www.threads.net/@paperenglish/post/200');
     expect(createPostInput.channelId).toBe('ch_th_1');
+    expect(createPostInput.text).toBe(formatPublishCopyText(thPost));
     expect(createPostInput.mode).toBe('shareNow');
     expect(createPostInput.schedulingType).toBe('automatic');
     expect(createPostInput.assets).toBeUndefined();
@@ -400,7 +407,12 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
     });
     globalThis.fetch = fetchMock;
 
-    const fbPost: PreparedPost = { ...mockPost, assetMode: 'text_only', destinationUrl: null, mediaUrl: null };
+    const fbPost: PreparedPost = {
+      ...mockPost,
+      assetMode: 'text_only',
+      destinationUrl: attributedUrl('https://paperbond.jjmowlab.com', 'facebook', 'always-on', mockPost.id),
+      mediaUrl: null,
+    };
     const publisher = new BufferPublisher('facebook');
     const result = await publisher.publish(fbPost);
 
@@ -679,7 +691,7 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
       ...mockPost,
       scheduledFor: futureDate,
       assetMode: 'text_only',
-      destinationUrl: null,
+      destinationUrl: attributedUrl('https://paperbond.jjmowlab.com', 'facebook', 'always-on', mockPost.id),
       mediaUrl: null,
     };
     const publisher = new BufferPublisher('facebook');
@@ -743,7 +755,7 @@ describe('Buffer GraphQL publisher with mocked endpoints', () => {
       platform: 'threads',
       scheduledFor: pastDate,
       assetMode: 'text_only',
-      destinationUrl: null,
+      destinationUrl: attributedUrl('https://paperbond.jjmowlab.com', 'threads', 'always-on', mockPost.id),
       mediaUrl: null,
       copyText: 'Overdue post',
     };

@@ -168,7 +168,6 @@ describe('Authoritative Copy-Length Contract & 1:1 Mix Tests', () => {
         copyLengthMode: 'short',
         assetMode: 'text_only',
         copyText: '不敢挑戰孩子英文 A++？😈',
-        destinationUrl: null,
       });
 
       const validation = validatePreparedPost(post);
@@ -185,7 +184,6 @@ describe('Authoritative Copy-Length Contract & 1:1 Mix Tests', () => {
         copyLengthMode: 'short',
         assetMode: 'text_only',
         copyText: '會考閱讀：\n你以為在考單字？\n它其實在考你到底看不看得懂。💀',
-        destinationUrl: null,
       });
 
       const validation = validatePreparedPost(post);
@@ -202,7 +200,6 @@ describe('Authoritative Copy-Length Contract & 1:1 Mix Tests', () => {
         copyLengthMode: 'short',
         assetMode: 'text_only',
         copyText: '嚇到了... 😳',
-        destinationUrl: null,
       });
 
       const validation = validatePreparedPost(post);
@@ -303,9 +300,9 @@ describe('Authoritative Copy-Length Contract & 1:1 Mix Tests', () => {
       expect(threadsReply).toContain('https://paperbond.jjmowlab.com/?utm_source=threads');
     });
 
-    it('rejects image_post with raw URL in copy text by default', () => {
+    it('rejects Instagram image_post with raw URL in copy text by default', () => {
       const post = buildPost({
-        platform: 'facebook',
+        platform: 'instagram',
         assetMode: 'image_post',
         mediaUrl: 'https://example.com/asset.png',
         copyText: '點擊此處報名：https://paperbond.jjmowlab.com',
@@ -317,23 +314,25 @@ describe('Authoritative Copy-Length Contract & 1:1 Mix Tests', () => {
     });
   });
 
-  describe('9. text_only URL prohibition remains unchanged', () => {
-    it('rejects text_only containing raw URL or destinationUrl', () => {
-      const rawUrlPost = buildPost({
-        platform: 'threads',
-        assetMode: 'text_only',
-        copyText: '看這裡 paperbond.jjmowlab.com',
-        destinationUrl: null,
-      });
-      expect(validatePreparedPost(rawUrlPost).valid).toBe(false);
-
+  describe('9. mandatory destinationUrl on text_only posts', () => {
+    it('accepts text_only containing canonical destinationUrl', () => {
       const destUrlPost = buildPost({
         platform: 'threads',
         assetMode: 'text_only',
         copyText: '純文字貼文',
-        destinationUrl: 'https://paperbond.jjmowlab.com/?utm_source=threads',
+        destinationUrl: 'https://paperbond.jjmowlab.com/?utm_source=threads&utm_medium=organic_social&utm_campaign=always-on&utm_content=test-post-uuid',
       });
-      expect(validatePreparedPost(destUrlPost).valid).toBe(false);
+      expect(validatePreparedPost(destUrlPost).valid).toBe(true);
+    });
+
+    it('rejects text_only missing destinationUrl', () => {
+      const missingDest = buildPost({
+        platform: 'threads',
+        assetMode: 'text_only',
+        copyText: '純文字貼文缺少連結',
+        destinationUrl: null,
+      });
+      expect(validatePreparedPost(missingDest).valid).toBe(false);
     });
   });
 

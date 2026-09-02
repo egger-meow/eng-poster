@@ -222,21 +222,14 @@ export async function enqueuePlan(
     // Gate E: Destination URL and UTM attribution
     const postId = newId();
     let destinationUrl: string | null = null;
-    if (assetMode === 'link_preview') {
+    if (platform === 'facebook' || platform === 'threads') {
+      const baseUrl = postInput.destinationUrl ?? config.websiteBaseUrl;
+      destinationUrl = attributedUrl(baseUrl, platform, input.campaignSlug, postId, input.topic);
+    } else if (platform === 'instagram') {
       if (postInput.destinationUrl) {
-        destinationUrl = attributedUrl(postInput.destinationUrl, platform, input.campaignSlug, postId);
-      } else {
-        destinationUrl = attributedUrl(config.websiteBaseUrl, platform, input.campaignSlug, postId);
-      }
-    } else if (assetMode === 'image_post') {
-      if (postInput.destinationUrl) {
-        destinationUrl = attributedUrl(postInput.destinationUrl, platform, input.campaignSlug, postId);
+        destinationUrl = attributedUrl(postInput.destinationUrl, platform, input.campaignSlug, postId, input.topic);
       } else if (postInput.ctaMode && postInput.ctaMode !== 'none') {
-        destinationUrl = attributedUrl(config.websiteBaseUrl, platform, input.campaignSlug, postId);
-      }
-    } else if (assetMode === 'text_only') {
-      if (postInput.destinationUrl) {
-        destinationUrl = attributedUrl(postInput.destinationUrl, platform, input.campaignSlug, postId);
+        destinationUrl = attributedUrl(config.websiteBaseUrl, platform, input.campaignSlug, postId, input.topic);
       }
     }
 

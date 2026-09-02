@@ -32,7 +32,41 @@ export function hasRawUrl(text: string): boolean {
   return extractUrls(text).length > 0;
 }
 
+export const CANONICAL_BASE_URL = 'https://paperbond.jjmowlab.com';
+export const CANONICAL_HOST = 'paperbond.jjmowlab.com';
+
+export function isCanonicalPaperEnglishUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    return u.hostname === CANONICAL_HOST;
+  } catch {
+    return false;
+  }
+}
+
+export function containsCanonicalPaperEnglishUrl(text: string): boolean {
+  return text.includes(CANONICAL_HOST);
+}
+
 export function formatPublishCopyText(post: PreparedPost): string {
+  if (post.platform === 'facebook' || post.platform === 'threads') {
+    if (!post.destinationUrl) {
+      return post.copyText;
+    }
+
+    if (post.copyText.includes(post.destinationUrl)) {
+      return post.copyText;
+    }
+
+    const canonicalPattern = /(?:https?:\/\/)?paperbond\.jjmowlab\.com[^\s<>()]*/gi;
+    if (canonicalPattern.test(post.copyText)) {
+      return post.copyText.replace(canonicalPattern, post.destinationUrl);
+    }
+
+    const trimmed = post.copyText.trimEnd();
+    return `${trimmed}\n\n${post.destinationUrl}`;
+  }
+
   if (post.assetMode === 'link_preview' && post.destinationUrl) {
     if (!post.copyText.includes(post.destinationUrl)) {
       return `${post.copyText}\n\n${post.destinationUrl}`;
@@ -163,8 +197,8 @@ export function validatePreparedPost(post: PreparedPost): ValidationResult {
     if (post.platform !== 'instagram' && !post.mediaUrl && !post.mediaAssetId) {
       errors.push(`${post.platform} image_post requires an attached media asset`);
     }
-    // Disallow raw URL in body by default
-    if (!post.allowRawUrlOnImagePost && hasRawUrl(copy)) {
+    // Only Instagram disallows raw URL in body by default
+    if (post.platform === 'instagram' && !post.allowRawUrlOnImagePost && hasRawUrl(copy)) {
       errors.push(`${post.platform} image_post must not include raw URL in body by default`);
     }
   } else if (effectiveAssetMode === 'link_preview') {
@@ -186,13 +220,24 @@ export function validatePreparedPost(post: PreparedPost): ValidationResult {
     if (post.mediaUrl || post.mediaAssetId) {
       errors.push(`${post.platform} text_only must not have an attached media asset`);
     }
-    // Must NOT have canonical destination URL
-    if (post.destinationUrl) {
-      errors.push(`${post.platform} text_only must not have a canonical destination URL`);
+  }
+
+  // 7. Mandatory Main-Body Link Invariant for Facebook & Threads
+  if (post.platform === 'facebook' || post.platform === 'threads') {
+    if (!post.destinationUrl) {
+      errors.push(`${post.platform} post requires a canonical Paper English destination URL`);
+    } else if (!isCanonicalPaperEnglishUrl(post.destinationUrl)) {
+      errors.push(`${post.platform} destination URL must be a canonical Paper English URL (${CANONICAL_BASE_URL})`);
     }
-    // Must NOT contain raw URL in body
-    if (hasRawUrl(copy)) {
-      errors.push(`${post.platform} text_only must not include raw URLs in body (use link_preview mode for link posts)`);
+
+    const finalPublishCopy = formatPublishCopyText(post);
+    if (!containsCanonicalPaperEnglishUrl(finalPublishCopy)) {
+      errors.push(`${post.platform} final publish copy must visibly contain a canonical Paper English destination URL`);
+    }
+    if (finalPublishCopy.length > limits[post.platform]) {
+      errors.push(
+        `${post.platform} final publish copy exceeds ${limits[post.platform]} characters (got ${finalPublishCopy.length})`
+      );
     }
   }
 

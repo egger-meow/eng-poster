@@ -86,19 +86,22 @@ To prevent GitHub Actions cron scheduling jitter from delaying social posts, Buf
 6. **Zero Duplicate Guarantee**: Row locks (`SKIP LOCKED`), checking pre-existing Buffer post IDs before re-dispatch, and channel searches for ambiguous network timeouts prevent duplicate posts.
 
 
-## Post Asset Strategy & Attribution
+## Post Asset Strategy & Mandatory Main-Body Link Contract
+
+**EVERY Facebook and Threads post must lead back to Paper English in the main body.**
+Canonical base: `https://paperbond.jjmowlab.com`
 
 Each post explicitly specifies its `asset_mode` (`text_only`, `image_post`, `link_preview`):
-- **Facebook**: Either `link_preview` (traffic) or `image_post` (branding/visuals), not mixed.
-  - `image_post`: Main post copy is clean with no raw URLs; the canonical destination URL is dispatched as the first comment (`metadata.facebook.firstComment`).
-  - `link_preview`: Main post copy contains the canonical destination URL; attached media is disallowed, and no duplicate first comment is created.
-  - `text_only`: Text post without media or destination URLs.
-- **Threads**: Selects `text_only`, `image_post`, or `link_preview` based on intent.
-  - `image_post`: Main post copy is clean with no raw URLs; when a destination URL exists, it is dispatched as a 2-item self-reply thread via Buffer's official `metadata.threads.thread`.
-  - `link_preview`: Main post copy contains the canonical destination URL; attached media is disallowed, and no duplicate thread reply is created.
-  - `text_only`: Sharp pedagogical opinions and insights without media or URLs.
+- **Facebook**:
+  - `text_only`: Text post with canonical destination URL visibly in main body; no media.
+  - `link_preview`: Main post copy contains the canonical destination URL; attached media is disallowed.
+  - `image_post`: Attached media + copy + canonical destination URL visibly in main body; optional secondary first comment (`metadata.facebook.firstComment`).
+- **Threads**:
+  - `text_only`: Sharp pedagogical opinions and punchy hooks with canonical destination URL visibly in main body; no media.
+  - `link_preview`: Main post copy contains the canonical destination URL; attached media is disallowed.
+  - `image_post`: Attached media + copy + canonical destination URL visibly in main body; optional secondary 2-item self-reply thread.
 - **Instagram**: Strictly `image_post` only.
-  - Media asset is mandatory; caption has no raw URL; the destination URL is dispatched as the first comment (`metadata.instagram.firstComment`).
+  - Media asset is mandatory; caption has no clickable URL; destination URL is dispatched as first comment (`metadata.instagram.firstComment`) when CTA is soft or direct.
 
 ## Authoritative Copy-Length Contract & 1:1 Rolling Mix
 

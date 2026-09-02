@@ -1,5 +1,5 @@
 import { loadConfig } from '../config.js';
-import { publishingAllowed } from '../content/gates.js';
+import { formatPublishCopyText, publishingAllowed } from '../content/gates.js';
 import { MarketingRepository } from '../db/repository.js';
 import { env } from '../env.js';
 import { classifyError } from '../platforms/base.js';
@@ -160,7 +160,8 @@ export async function dispatchDue(options?: {
       if (row.attempt_count > 1 && !row.platform_post_id) {
         try {
           const recent = await publisher.getChannelPosts(10);
-          const match = recent.find((p) => p.text?.trim() === post.copyText.trim());
+          const publishText = formatPublishCopyText(post);
+          const match = recent.find((p) => p.text?.trim() === publishText.trim() || p.text?.trim() === post.copyText.trim());
           if (match) {
             if (match.status === 'sent') {
               await repo.complete(

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { dispatchDue } from '../src/orchestration/dispatch-due.js';
 import { env } from '../src/env.js';
+import { attributedUrl } from '../src/content/utm.js';
 import type { Platform } from '../src/types.js';
 
 describe('look-ahead Buffer scheduling and reconciliation in dispatcher', () => {
@@ -25,7 +26,14 @@ describe('look-ahead Buffer scheduling and reconciliation in dispatcher', () => 
     vi.restoreAllMocks();
   });
 
-  function createMockRepo(overrides: Partial<any> = {}) {
+  function createMockRepo(overrides: Partial<{
+    posts: any[];
+    attempts: any[];
+    claimedIds: string[];
+    providerScheduledIds: string[];
+    completedIds: string[];
+    failedIds: string[];
+  }> = {}) {
     const defaultState = {
       posts: [] as any[],
       attempts: [] as any[],
@@ -36,6 +44,13 @@ describe('look-ahead Buffer scheduling and reconciliation in dispatcher', () => 
     };
 
     const state = { ...defaultState, ...overrides };
+    state.posts = state.posts.map((p: any) => ({
+      ...p,
+      destination_url:
+        p.destination_url === undefined || p.destination_url === null
+          ? (p.platform === 'instagram' ? null : attributedUrl('https://paperbond.jjmowlab.com', p.platform ?? 'threads', 'always-on', p.id ?? 'p1'))
+          : p.destination_url,
+    }));
 
     const repo = {
       state,

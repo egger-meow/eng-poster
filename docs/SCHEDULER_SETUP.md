@@ -153,7 +153,7 @@ pnpm social enqueue-plan --input '{"planDate":"2026-09-05","archetype":"pain_poi
 | `asset_mode` | `text` | `'text_only' \| 'image_post' \| 'link_preview'` |
 | `copy_length_mode` | `text` | `'short' \| 'long'` |
 | `copy_text` | `text` | Authored post text |
-| `destination_url` | `text` | UTM URL or `NULL` if CTA is none |
+| `destination_url` | `text` | Attributed canonical Paper English UTM URL (mandatory for Facebook & Threads) |
 | `media_asset_id` | `uuid` | Foreign key referencing `marketing_assets(id)` (optional) |
 | `scheduled_for` | `timestamptz`| Scheduled publish timestamp (ISO8601 with timezone) |
 | `status` | `text` | Lifecycle: `'scheduled'` &rarr; `'claimed'` &rarr; `'provider_scheduled'` &rarr; `'published'` |
@@ -163,17 +163,20 @@ pnpm social enqueue-plan --input '{"planDate":"2026-09-05","archetype":"pain_poi
 | `content_hash` | `text` | `sha256(copy_text)` |
 | `claim_manifest` | `jsonb` | Array of `{ "text": "...", "kind": "...", "sourceUrls": [...] }` |
 
-### Asset Strategy & Attribution Rules:
-- **Facebook**: Either `link_preview` or `image_post` (not mixed).
-  - `image_post`: Media attached. Post body is clean (no raw URLs). `destination_url` is automatically sent to Buffer as the first comment (`metadata.facebook.firstComment`).
-  - `link_preview`: No attached media. Destination URL is included in the main post text. No duplicate first comment.
-  - `text_only`: Rare. No media, no URL.
-- **Threads**: Intentionally select `text_only`, `image_post`, or `link_preview`.
-  - `image_post`: Media attached. Main post copy has no raw URL. When `destination_url` exists, it is automatically published as a 2nd-item self-reply thread via Buffer's official `metadata.threads.thread`.
-  - `link_preview`: No attached media. Destination URL is in the main post. No duplicate reply.
-  - `text_only`: Pure copy. No media, no URL.
+### Mandatory Main-Body Link Invariant & Asset Strategy:
+**EVERY FACEBOOK AND THREADS POST MUST LEAD BACK TO PAPER ENGLISH IN THE MAIN BODY.**
+Canonical base: `https://paperbond.jjmowlab.com`
+
+- **Facebook**:
+  - `text_only`: Pure text + canonical destination URL visibly in main body. No attached media.
+  - `link_preview`: Text + canonical destination URL in main body. No attached media.
+  - `image_post`: Media attached. Canonical destination URL is visibly in the main post body. Optional secondary first comment (`firstComment`) may provide additional context.
+- **Threads**:
+  - `text_only`: Pure copy + canonical destination URL visibly in main body. No attached media.
+  - `link_preview`: Text + canonical destination URL in main body. No attached media.
+  - `image_post`: Media attached. Canonical destination URL is visibly in the main post body. Optional secondary self-reply thread may provide additional context.
 - **Instagram**: Strictly `image_post` only.
-  - Media asset is mandatory. Caption has no raw URL. When `destination_url` exists, it is sent to Buffer as the first comment (`metadata.instagram.firstComment`).
+  - Media asset is mandatory. Caption has no clickable URL. When `destination_url` exists, it is sent to Buffer as the first comment (`metadata.instagram.firstComment`).
 
 ---
 
