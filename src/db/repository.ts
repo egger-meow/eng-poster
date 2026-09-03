@@ -660,6 +660,20 @@ export class MarketingRepository {
       .select('*')
       .eq('post_id', input.postId)
       .maybeSingle();
+
+    if (
+      existingErr &&
+      (existingErr.code === 'PGRST204' ||
+        existingErr.code === 'PGRST205' ||
+        existingErr.code === '42P01' ||
+        existingErr.message?.includes('marketing_post_feedback') ||
+        existingErr.message?.includes('does not exist') ||
+        existingErr.message?.includes('schema cache'))
+    ) {
+      throw new Error(
+        'marketing_post_feedback table does not exist in Supabase database yet. Please apply migration 20260903010000_marketing_post_feedback.sql.'
+      );
+    }
     checked(true, existingErr);
 
     const now = new Date().toISOString();
@@ -690,10 +704,10 @@ export class MarketingRepository {
     return {
       postId: row.post_id,
       isWinner: row.is_winner,
-      observedViews: row.observed_views !== null ? Number(row.observed_views) : null,
-      observedLikes: row.observed_likes !== null ? Number(row.observed_likes) : null,
-      observedComments: row.observed_comments !== null ? Number(row.observed_comments) : null,
-      observedShares: row.observed_shares !== null ? Number(row.observed_shares) : null,
+      observedViews: row.observed_views !== null && row.observed_views !== undefined ? Number(row.observed_views) : null,
+      observedLikes: row.observed_likes !== null && row.observed_likes !== undefined ? Number(row.observed_likes) : null,
+      observedComments: row.observed_comments !== null && row.observed_comments !== undefined ? Number(row.observed_comments) : null,
+      observedShares: row.observed_shares !== null && row.observed_shares !== undefined ? Number(row.observed_shares) : null,
       operatorNote: row.operator_note ?? null,
       markedAt: row.marked_at ?? null,
       updatedAt: row.updated_at,
@@ -701,9 +715,9 @@ export class MarketingRepository {
   }
 
   async getPublishedPostsWithFeedback(options?: {
-    platform?: Platform;
-    winnersOnly?: boolean;
-    limit?: number;
+    platform?: Platform | undefined;
+    winnersOnly?: boolean | undefined;
+    limit?: number | undefined;
   }): Promise<PublishedPostWithFeedback[]> {
     const limit = options?.limit ?? 50;
 
@@ -716,6 +730,22 @@ export class MarketingRepository {
         .select('*')
         .eq('is_winner', true)
         .order('marked_at', { ascending: false });
+
+      if (
+        feedbackErr &&
+        (feedbackErr.code === 'PGRST204' ||
+          feedbackErr.code === 'PGRST205' ||
+          feedbackErr.code === '42P01' ||
+          feedbackErr.message?.includes('marketing_post_feedback') ||
+          feedbackErr.message?.includes('does not exist') ||
+          feedbackErr.message?.includes('schema cache'))
+      ) {
+        console.warn(
+          'marketing_post_feedback table not found in Supabase schema cache; returning empty winners list (migration pending)'
+        );
+        return [];
+      }
+
       const rawFeedback = checked(feedbackRows, feedbackErr) ?? [];
       if (rawFeedback.length === 0) return [];
       targetPostIds = rawFeedback.map((f: any) => f.post_id);
@@ -751,9 +781,24 @@ export class MarketingRepository {
         .from('marketing_post_feedback')
         .select('*')
         .in('post_id', postIds);
-      const rawFeedback = checked(feedbackRows, feedbackErr) ?? [];
-      for (const f of rawFeedback) {
-        feedbackByPostId.set(f.post_id, f);
+
+      if (
+        feedbackErr &&
+        (feedbackErr.code === 'PGRST204' ||
+          feedbackErr.code === 'PGRST205' ||
+          feedbackErr.code === '42P01' ||
+          feedbackErr.message?.includes('marketing_post_feedback') ||
+          feedbackErr.message?.includes('does not exist') ||
+          feedbackErr.message?.includes('schema cache'))
+      ) {
+        console.warn(
+          'marketing_post_feedback table not found in Supabase schema cache; skipping feedback join (migration pending)'
+        );
+      } else {
+        const rawFeedback = checked(feedbackRows, feedbackErr) ?? [];
+        for (const f of rawFeedback) {
+          feedbackByPostId.set(f.post_id, f);
+        }
       }
     }
 
@@ -824,8 +869,8 @@ export class MarketingRepository {
   }
 
   async getWinnerPosts(options?: {
-    platform?: Platform;
-    limit?: number;
+    platform?: Platform | undefined;
+    limit?: number | undefined;
   }): Promise<WinnerPostContext[]> {
     const limit = options?.limit ?? 50;
 
@@ -840,6 +885,21 @@ export class MarketingRepository {
     }
 
     const { data: feedbackRows, error: fbErr } = await feedbackQuery;
+    if (
+      fbErr &&
+      (fbErr.code === 'PGRST204' ||
+        fbErr.code === 'PGRST205' ||
+        fbErr.code === '42P01' ||
+        fbErr.message?.includes('marketing_post_feedback') ||
+        fbErr.message?.includes('does not exist') ||
+        fbErr.message?.includes('schema cache'))
+    ) {
+      console.warn(
+        'marketing_post_feedback table not found in Supabase schema cache; returning empty winners list (migration pending)'
+      );
+      return [];
+    }
+
     const rawFeedback = checked(feedbackRows, fbErr) ?? [];
     if (rawFeedback.length === 0) return [];
 

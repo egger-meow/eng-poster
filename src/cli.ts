@@ -122,4 +122,31 @@ program
     console.log(JSON.stringify(await publisherFor(o.platform as Platform).publish(sample.post), null, 2));
   });
 
+program
+  .command('winners')
+  .description('Start local Winner Dashboard bound to 127.0.0.1')
+  .option('--port <port>', 'Local port to bind', '3333')
+  .action(async (o) => {
+    const { startWinnerDashboard } = await import('./dashboard/server.js');
+    await startWinnerDashboard({ port: Number(o.port) });
+  });
+
+program
+  .command('winners-list')
+  .description('Inspect manually marked winner posts with metrics and copy context')
+  .option('--platform <platform>', 'Filter by platform (threads, facebook, instagram)')
+  .option('--limit <limit>', 'Maximum number of winners to inspect', '50')
+  .action(async (o) => {
+    if (o.platform && !platforms.includes(o.platform)) {
+      throw new Error(`Invalid platform: ${o.platform}`);
+    }
+    const repo = new MarketingRepository();
+    const winners = await repo.getWinnerPosts({
+      platform: o.platform as Platform | undefined,
+      limit: o.limit ? Number(o.limit) : undefined,
+    });
+    console.log(JSON.stringify({ count: winners.length, winners }, null, 2));
+  });
+
 await program.parseAsync();
+
