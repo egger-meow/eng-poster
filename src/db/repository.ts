@@ -1,5 +1,15 @@
 import { DateTime } from 'luxon';
-import type { AssetRecord, CopyLengthMode, Platform, PreparedPost, ResearchSnapshot, TokenHealth } from '../types.js';
+import type {
+  AssetRecord,
+  CopyLengthMode,
+  Platform,
+  PostFeedbackRecord,
+  PreparedPost,
+  PublishedPostWithFeedback,
+  ResearchSnapshot,
+  TokenHealth,
+  WinnerPostContext,
+} from '../types.js';
 import { classifyCopyLengthMode } from '../content/ranges.js';
 import { getSupabase } from './client.js';
 
@@ -626,5 +636,298 @@ export class MarketingRepository {
       staleProviderScheduledCount: staleProvider ?? 0,
     };
   }
+
+  async upsertPostFeedback(input: {
+    postId: string;
+    isWinner: boolean;
+    observedViews?: number | null | undefined;
+    observedLikes?: number | null | undefined;
+    observedComments?: number | null | undefined;
+    observedShares?: number | null | undefined;
+    operatorNote?: string | null | undefined;
+  }): Promise<PostFeedbackRecord> {
+    if (
+      (input.observedViews !== undefined && input.observedViews !== null && input.observedViews < 0) ||
+      (input.observedLikes !== undefined && input.observedLikes !== null && input.observedLikes < 0) ||
+      (input.observedComments !== undefined && input.observedComments !== null && input.observedComments < 0) ||
+      (input.observedShares !== undefined && input.observedShares !== null && input.observedShares < 0)
+    ) {
+      throw new Error('Observed metrics must be non-negative');
+    }
+
+    const { data: existing, error: existingErr } = await this.db
+      .from('marketing_post_feedback')
+      .select('*')
+      .eq('post_id', input.postId)
+      .maybeSingle();
+    checked(true, existingErr);
+
+    const now = new Date().toISOString();
+    let markedAt = existing?.marked_at ?? null;
+    if (input.isWinner && !markedAt) {
+      markedAt = now;
+    }
+
+    const payload = {
+      post_id: input.postId,
+      is_winner: input.isWinner,
+      observed_views: input.observedViews !== undefined ? input.observedViews : (existing?.observed_views ?? null),
+      observed_likes: input.observedLikes !== undefined ? input.observedLikes : (existing?.observed_likes ?? null),
+      observed_comments: input.observedComments !== undefined ? input.observedComments : (existing?.observed_comments ?? null),
+      observed_shares: input.observedShares !== undefined ? input.observedShares : (existing?.observed_shares ?? null),
+      operator_note: input.operatorNote !== undefined ? input.operatorNote : (existing?.operator_note ?? null),
+      marked_at: markedAt,
+      updated_at: now,
+    };
+
+    const { data, error } = await this.db
+      .from('marketing_post_feedback')
+      .upsert(payload, { onConflict: 'post_id' })
+      .select('*')
+      .single();
+
+    const row = checked(data, error);
+    return {
+      postId: row.post_id,
+      isWinner: row.is_winner,
+      observedViews: row.observed_views !== null ? Number(row.observed_views) : null,
+      observedLikes: row.observed_likes !== null ? Number(row.observed_likes) : null,
+      observedComments: row.observed_comments !== null ? Number(row.observed_comments) : null,
+      observedShares: row.observed_shares !== null ? Number(row.observed_shares) : null,
+      operatorNote: row.operator_note ?? null,
+      markedAt: row.marked_at ?? null,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  async getPublishedPostsWithFeedback(options?: {
+    platform?: Platform;
+    winnersOnly?: boolean;
+    limit?: number;
+  }): Promise<PublishedPostWithFeedback[]> {
+    const limit = options?.limit ?? 50;
+
+    let targetPostIds: string[] | null = null;
+    const feedbackByPostId = new Map<string, any>();
+
+    if (options?.winnersOnly) {
+      const { data: feedbackRows, error: feedbackErr } = await this.db
+        .from('marketing_post_feedback')
+        .select('*')
+        .eq('is_winner', true)
+        .order('marked_at', { ascending: false });
+      const rawFeedback = checked(feedbackRows, feedbackErr) ?? [];
+      if (rawFeedback.length === 0) return [];
+      targetPostIds = rawFeedback.map((f: any) => f.post_id);
+      for (const f of rawFeedback) {
+        feedbackByPostId.set(f.post_id, f);
+      }
+    }
+
+    let postsQuery = this.db
+      .from('marketing_posts')
+      .select('*')
+      .eq('status', 'published');
+
+    if (options?.platform) {
+      postsQuery = postsQuery.eq('platform', options.platform);
+    }
+    if (targetPostIds) {
+      postsQuery = postsQuery.in('id', targetPostIds);
+    }
+
+    postsQuery = postsQuery
+      .order('published_at', { ascending: false })
+      .limit(limit);
+
+    const { data: postRows, error: postsErr } = await postsQuery;
+    const posts = checked(postRows, postsErr) ?? [];
+    if (posts.length === 0) return [];
+
+    const postIds = posts.map((p: any) => p.id);
+
+    if (!options?.winnersOnly) {
+      const { data: feedbackRows, error: feedbackErr } = await this.db
+        .from('marketing_post_feedback')
+        .select('*')
+        .in('post_id', postIds);
+      const rawFeedback = checked(feedbackRows, feedbackErr) ?? [];
+      for (const f of rawFeedback) {
+        feedbackByPostId.set(f.post_id, f);
+      }
+    }
+
+    const planIds = [...new Set(posts.map((p: any) => p.content_plan_id).filter(Boolean))];
+    const assetIds = [...new Set(posts.map((p: any) => p.media_asset_id).filter(Boolean))];
+
+    const planMap = new Map<string, { archetype: string; topic: string }>();
+    if (planIds.length > 0) {
+      const { data: plans, error: planErr } = await this.db
+        .from('marketing_content_plans')
+        .select('id, archetype, topic')
+        .in('id', planIds);
+      const planRows = checked(plans, planErr) ?? [];
+      for (const p of planRows) {
+        planMap.set(p.id, { archetype: p.archetype, topic: p.topic });
+      }
+    }
+
+    const assetMap = new Map<string, { concept?: string | null }>();
+    if (assetIds.length > 0) {
+      const { data: assets, error: assetErr } = await this.db
+        .from('marketing_assets')
+        .select('id, concept')
+        .in('id', assetIds);
+      const assetRows = checked(assets, assetErr) ?? [];
+      for (const a of assetRows) {
+        assetMap.set(a.id, { concept: a.concept });
+      }
+    }
+
+    return posts.map((p: any) => {
+      const fb = feedbackByPostId.get(p.id);
+      const plan = p.content_plan_id ? planMap.get(p.content_plan_id) : undefined;
+      const asset = p.media_asset_id ? assetMap.get(p.media_asset_id) : undefined;
+      const copyLengthMode: CopyLengthMode =
+        p.copy_length_mode ?? classifyCopyLengthMode(p.copy_text, p.platform);
+
+      return {
+        id: p.id,
+        platform: p.platform,
+        assetMode: p.asset_mode,
+        copyLengthMode,
+        copyText: p.copy_text,
+        destinationUrl: p.destination_url ?? null,
+        publishedAt: p.published_at ?? null,
+        scheduledFor: p.scheduled_for,
+        platformPostUrl: p.platform_post_url ?? null,
+        contentPlanId: p.content_plan_id ?? null,
+        mediaAssetId: p.media_asset_id ?? null,
+        archetype: plan?.archetype ?? null,
+        topic: plan?.topic ?? null,
+        visualConcept: asset?.concept ?? null,
+        feedback: fb
+          ? {
+              postId: fb.post_id,
+              isWinner: fb.is_winner,
+              observedViews: fb.observed_views !== null ? Number(fb.observed_views) : null,
+              observedLikes: fb.observed_likes !== null ? Number(fb.observed_likes) : null,
+              observedComments: fb.observed_comments !== null ? Number(fb.observed_comments) : null,
+              observedShares: fb.observed_shares !== null ? Number(fb.observed_shares) : null,
+              operatorNote: fb.operator_note ?? null,
+              markedAt: fb.marked_at ?? null,
+              updatedAt: fb.updated_at,
+            }
+          : null,
+      };
+    });
+  }
+
+  async getWinnerPosts(options?: {
+    platform?: Platform;
+    limit?: number;
+  }): Promise<WinnerPostContext[]> {
+    const limit = options?.limit ?? 50;
+
+    let feedbackQuery = this.db
+      .from('marketing_post_feedback')
+      .select('*')
+      .eq('is_winner', true)
+      .order('marked_at', { ascending: false });
+
+    if (options?.limit) {
+      feedbackQuery = feedbackQuery.limit(limit);
+    }
+
+    const { data: feedbackRows, error: fbErr } = await feedbackQuery;
+    const rawFeedback = checked(feedbackRows, fbErr) ?? [];
+    if (rawFeedback.length === 0) return [];
+
+    const postIds = rawFeedback.map((f: any) => f.post_id);
+    const feedbackMap = new Map<string, any>(rawFeedback.map((f: any) => [f.post_id, f]));
+
+    let postsQuery = this.db
+      .from('marketing_posts')
+      .select('*')
+      .in('id', postIds);
+
+    if (options?.platform) {
+      postsQuery = postsQuery.eq('platform', options.platform);
+    }
+
+    const { data: postRows, error: postsErr } = await postsQuery;
+    const posts = checked(postRows, postsErr) ?? [];
+    if (posts.length === 0) return [];
+
+    const planIds = [...new Set(posts.map((p: any) => p.content_plan_id).filter(Boolean))];
+    const assetIds = [...new Set(posts.map((p: any) => p.media_asset_id).filter(Boolean))];
+
+    const planMap = new Map<string, { archetype: string; topic: string }>();
+    if (planIds.length > 0) {
+      const { data: plans, error: planErr } = await this.db
+        .from('marketing_content_plans')
+        .select('id, archetype, topic')
+        .in('id', planIds);
+      const planRows = checked(plans, planErr) ?? [];
+      for (const p of planRows) {
+        planMap.set(p.id, { archetype: p.archetype, topic: p.topic });
+      }
+    }
+
+    const assetMap = new Map<string, { concept?: string | null }>();
+    if (assetIds.length > 0) {
+      const { data: assets, error: assetErr } = await this.db
+        .from('marketing_assets')
+        .select('id, concept')
+        .in('id', assetIds);
+      const assetRows = checked(assets, assetErr) ?? [];
+      for (const a of assetRows) {
+        assetMap.set(a.id, { concept: a.concept });
+      }
+    }
+
+    const winners: WinnerPostContext[] = posts.map((p: any) => {
+      const fb = feedbackMap.get(p.id)!;
+      const plan = p.content_plan_id ? planMap.get(p.content_plan_id) : undefined;
+      const asset = p.media_asset_id ? assetMap.get(p.media_asset_id) : undefined;
+      const copyLengthMode: CopyLengthMode =
+        p.copy_length_mode ?? classifyCopyLengthMode(p.copy_text, p.platform);
+      const copyPreview =
+        p.copy_text.length > 80 ? `${p.copy_text.slice(0, 80).trim()}...` : p.copy_text;
+
+      return {
+        postId: p.id,
+        platform: p.platform,
+        copyText: p.copy_text,
+        copyPreview,
+        assetMode: p.asset_mode,
+        copyLengthMode,
+        hasDestinationUrl: Boolean(p.destination_url && p.destination_url.length > 0),
+        destinationUrl: p.destination_url ?? null,
+        publishedAt: p.published_at ?? null,
+        platformPostUrl: p.platform_post_url ?? null,
+        archetype: plan?.archetype ?? null,
+        topic: plan?.topic ?? null,
+        visualConcept: asset?.concept ?? null,
+        isWinner: fb.is_winner,
+        observedViews: fb.observed_views !== null ? Number(fb.observed_views) : null,
+        observedLikes: fb.observed_likes !== null ? Number(fb.observed_likes) : null,
+        observedComments: fb.observed_comments !== null ? Number(fb.observed_comments) : null,
+        observedShares: fb.observed_shares !== null ? Number(fb.observed_shares) : null,
+        operatorNote: fb.operator_note ?? null,
+        markedAt: fb.marked_at ?? null,
+        updatedAt: fb.updated_at,
+      };
+    });
+
+    winners.sort((a, b) => {
+      const aTime = a.markedAt ?? a.publishedAt ?? '';
+      const bTime = b.markedAt ?? b.publishedAt ?? '';
+      return bTime.localeCompare(aTime);
+    });
+
+    return winners;
+  }
 }
+
 
