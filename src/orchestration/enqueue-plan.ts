@@ -63,6 +63,9 @@ export const enqueuePlanSchema = z.object({
       generationTimestamp: z.string().default(() => new Date().toISOString()),
       sourceUrls: z.array(z.string().url()).optional(),
       contentHash: z.string().optional(),
+      winnerReferenceCount: z.number().int().nonnegative().optional(),
+      winningSignalsUsed: z.array(z.string()).optional(),
+      explorationMode: z.enum(['winner_informed', 'exploratory']).optional(),
     })
     .passthrough()
     .default(() => ({ generationTimestamp: new Date().toISOString() })),

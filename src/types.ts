@@ -90,3 +90,64 @@ export interface AssetRecord {
   usageCount: number;
   lastUsedAt?: string | null;
 }
+
+export interface PostFeedbackRecord {
+  postId: string;
+  isWinner: boolean;
+  observedViews: number | null;
+  observedLikes: number | null;
+  observedComments: number | null;
+  observedShares: number | null;
+  operatorNote: string | null;
+  markedAt: string | null;
+  updatedAt: string;
+}
+
+export interface PublishedPostWithFeedback {
+  id: string;
+  platform: Platform;
+  assetMode: AssetMode;
+  copyLengthMode: CopyLengthMode;
+  copyText: string;
+  destinationUrl: string | null;
+  publishedAt: string | null;
+  scheduledFor: string;
+  platformPostUrl: string | null;
+  contentPlanId: string | null;
+  mediaAssetId: string | null;
+  archetype: string | null;
+  topic: string | null;
+  visualConcept: string | null;
+  feedback: PostFeedbackRecord | null;
+}
+
+export interface WinnerPostContext {
+  postId: string;
+  platform: Platform;
+  copyText: string;
+  copyPreview: string;
+  assetMode: AssetMode;
+  copyLengthMode: CopyLengthMode;
+  hasDestinationUrl: boolean;
+  destinationUrl: string | null;
+  publishedAt: string | null;
+  platformPostUrl: string | null;
+  archetype: string | null;
+  topic: string | null;
+  visualConcept: string | null;
+  isWinner: boolean;
+  observedViews: number | null;
+  observedLikes: number | null;
+  observedComments: number | null;
+  observedShares: number | null;
+  operatorNote: string | null;
+  markedAt: string | null;
+  updatedAt: string;
+}
+
+export interface WinningSignal {
+  signal: string;
+  evidencePostIds: string[];
+  confidence: 'high' | 'medium' | 'low';
+  notes?: string;
+}
