@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import http from 'node:http';
-import { createWinnerDashboardServer, startWinnerDashboard } from '../src/dashboard/server.js';
+import { startWinnerDashboard } from '../src/dashboard/server.js';
 import type { MarketingRepository } from '../src/db/repository.js';
 
 describe('Local Winner Dashboard Server', () => {
@@ -8,7 +8,6 @@ describe('Local Winner Dashboard Server', () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
 
-  const mockFeedback: any[] = [];
   const mockPosts: any[] = [
     {
       id: 'post-101',

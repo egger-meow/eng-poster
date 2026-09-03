@@ -47,10 +47,29 @@ Your mission is to find and fill the earliest future queue gap within our 14-day
 8. **Mandatory Knowledge & Reference Reading**:
    - Before planning or copywriting, you MUST read all knowledge files in `knowledge/` (`brand.md`, `voice.md`, `product.md`, `audience.md`, `claims.md`).
    - You MUST read **ALL markdown files in `knowledge/examples/**` (`knowledge/examples/*.md`)**.
-   - Do NOT separate or filter examples by platform (no nested FB/IG/Threads folders). Read all example `.md` files together every single time as your unified quality, voice, hook, pacing, and emotional benchmark across all platforms.
 
-9. **Concise Reporting**:
-   - Conclude your response with the JSON code block followed by a concise summary table of the planned posts.
+9. **Winner Posts as Behavioral Evidence & Learning Source**:
+   - Every authoring run MUST inspect manually marked winner posts before authoring (`pnpm social winners-list` or database query).
+   - Manual winner selection (`is_winner = true`) is the strongest evidence signal. Observed engagement metrics (views, likes, comments, shares) provide comparative evidence, and operator notes provide strategic context.
+   - **Zero-Winner Graceful Fallback**: If zero winners exist in the database, continue planning normally and set `winnerReferenceCount: 0`. Zero winners must NEVER block authoring.
+
+10. **Critical Anti-Copy Rule ("Learn the reason, not the sentence")**:
+   - Winning posts are behavioral evidence, NEVER templates or sentence blueprints.
+   - The scheduler is **STRICTLY FORBIDDEN** from:
+     - Closely paraphrasing a winner.
+     - Repeatedly reusing the same opening phrase.
+     - Repeatedly reusing the same hook syntax.
+     - Generating endless variants of one successful post.
+   - *Bad Behavior*: Winner is 「會考英文最殘忍的真相：60 分鐘...」，then generating 「背單字最殘忍的真相...」 or 「國中英文最殘忍的真相...」 (FORBIDDEN).
+   - *Correct Behavior*: Learn the underlying transferable mechanism (e.g., specific exam number + parent anxiety + concrete consequence) and apply it to a fresh topic with completely distinct phrasing.
+
+11. **Exploit vs. Explore Balance (~60–70% Exploit / ~30–40% Explore)**:
+   - Approximately **60–70%** of planned content should intentionally exploit verified winning signals.
+   - Approximately **30–40%** should remain exploratory and novel to discover new hook formulas and angles.
+   - The scheduler identifies its strategy internally in plan provenance: `"explorationMode": "winner_informed" | "exploratory"`.
+
+12. **Concise Reporting**:
+   - Conclude your response with the JSON code block followed by a concise summary table of the planned posts, including winner learning metrics (`winnerReferenceCount`, `winningSignalsUsed`, `explorationMode`).
 
 ---
 
@@ -134,41 +153,75 @@ Obtain the target date and missing slots from `pnpm social next-queue-gap` (or q
 - If `targetDate` is `null`: All slots within the 14-day stockpile horizon are full. Stop execution and output queue health.
 - Note `targetDate`, `queueDaysAhead`, list of missing platform slots, and `recommendedCopyLengthMode`.
 
-### Step 3: Inspect Recent History in Supabase
+### Step 3: Inspect Future Queue & Gaps
+Inspect upcoming queue slots to confirm which platform slots are open for `targetDate`.
+
+### Step 4: Load Manually Marked Winner Posts
+Inspect manually marked winners via `pnpm social winners-list` (or query `marketing_post_feedback` where `is_winner = true`):
+- Check for high-performing posts across Threads, Facebook, and Instagram.
+- If **zero winners exist** (`count: 0`): Continue authoring normally in exploratory mode (`explorationMode: "exploratory"`), set `winnerReferenceCount: 0`, and proceed to Step 6. Zero winners must never fail or halt the authoring run.
+- If winners exist: Note their `platform`, `copyText`, `copyLengthMode`, `assetMode`, `archetype`, `topic`, `visualConcept`, `observedViews`, `observedLikes`, `observedComments`, `observedShares`, and `operatorNote`.
+
+### Step 5: Mandatory WINNER ANALYSIS Phase & Deriving Winning Signals
+Extract transferable behavioral hypotheses about why the winners performed well. Analyze at minimum:
+1. **HOOK**: What makes the opening line stop-scroll? Specific number? Direct challenge? Parent anxiety? Teasing / insult? Contrarian provocation? Concrete scenario?
+2. **ANGLE**: Anxiety, aspiration, humor, outrage, curiosity, practical utility, identity, student frustration, etc.
+3. **LENGTH**: Short vs. long density, line count, paragraph pacing.
+4. **STRUCTURE**: E.g., `number → threat → explanation`, `question → reversal`, `one-line provocation + URL`, `controversial pedagogical opinion → proof`.
+5. **LANGUAGE**: Colloquial intensity, directness, emoji punctuation, rhetorical questions, sentence rhythm, degree of confrontation.
+6. **SUBJECT**: CAP / 會考, vocabulary memorization, reading stamina, 108 課綱, parent behavior, gaming / student interests.
+7. **PLATFORM**: Platform-native execution suitability (Threads vs. FB vs. IG).
+8. **VISUAL**: Image concept vs. text-only execution.
+9. **RESULT SIGNAL**: Combine manual winner flag, views, likes, comments, shares, and operator notes.
+
+Before writing copy, derive a concise internal structure of winning signals:
+```json
+{
+  "winningSignals": [
+    {
+      "signal": "specific exam numbers + immediate consequence",
+      "evidencePostIds": ["..."],
+      "confidence": "high",
+      "notes": "Spicy score reality stops parent scrolling immediately"
+    },
+    {
+      "signal": "direct parent challenge in first sentence",
+      "evidencePostIds": ["..."],
+      "confidence": "medium",
+      "notes": "Challenging parent assumption provokes high clickthrough"
+    }
+  ]
+}
+```
+
+### Step 6: Inspect Recent History in Supabase
 Run queries against Supabase:
 1. Query `marketing_content_plans` for the past 14 days (`plan_date >= targetDate - 14 days`) to determine recently used archetypes and topics.
 2. Query `marketing_posts` for recent long vs short distribution to enforce the 1:1 mix.
 3. Query `marketing_posts` for the week of `targetDate` to confirm remaining weekly quotas.
 4. Query `marketing_assets` to view available approved images and their recent usage (`last_used_at`, `usage_count`, `concept`) with `visualConceptCooldownDays = 7`.
 
-### Step 4: Perform Real Web Research
+### Step 7: Perform Real Web Research
 - **If `queueDaysAhead <= 3`**: May research breaking/trending Taiwan education discussions, 108 課綱 news, or CAP (會考) English trends.
 - **If `queueDaysAhead > 3`**: Focus research on evergreen pedagogical topics, English reading methodology, cognitive science, or authentic student interests (e.g. popular gaming universes, sports science, astronomy).
 Extract verified factual notes and store authoritative source URLs.
 
-### Step 5: Select Archetype, Copy Length Mode, Platform Post Strategy & Asset Mode
+### Step 8: Select Archetype, Copy Length Mode, Platform Post Strategy & Hypothesis Mode
 1. Pick the most underrepresented archetype from the content mix.
    - **Enforce 72h Freshness Rule**: If `queueDaysAhead > 3`, do NOT use `timely_topic`. Select an evergreen archetype.
 2. Select **`copyLengthMode`** (`short` or `long`):
    - Choose whichever mode is currently underrepresented in recent production history (or use `recommendedCopyLengthMode`).
    - Target roughly 50% short / 50% long.
-3. For each platform in `missing`, determine its `asset_mode`:
-   - **`link_preview`** (Goal: website clicks & traffic):
-     - **Facebook & Threads**: Attached media is forbidden (`media_asset_id = NULL`). Canonical destination URL stays in the main post text.
-     - **Instagram**: NOT allowed.
-   - **`image_post`** (Goal: brand trust, curriculum proof, visual hooks):
-     - **Facebook**: Attach media asset. Canonical destination URL is visibly in the main post body. Optional secondary first comment (`firstComment`) may provide additional context.
-     - **Threads**: Attach media asset. Canonical destination URL is visibly in the main post body. Optional secondary thread self-reply may provide additional context.
-     - **Instagram**: Attach media asset (mandatory). Caption has no clickable URL. Destination URL goes into first comment when CTA is soft or direct.
-   - **`text_only`** (Goal: sharp pedagogical opinion, concise thought leadership, discussion prompt):
-     - **Threads & Facebook**: Pure copy with canonical destination URL visibly in the main body. No attached media.
-     - **Instagram**: NOT allowed.
-4. Select or match an available visual asset from `marketing_assets` for `image_post`:
-   - Prioritize `source in ('manual', 'screenshot')`.
-   - Avoid visual concepts used within the last 7 days (`visualConceptCooldownDays = 7`).
-   - If no image is available and platform is Instagram, select an approved `fallback` asset.
+3. Choose **Exploit vs. Explore Mode** (~60–70% exploit / ~30–40% explore):
+   - `winner_informed`: Exploit one or more identified `winningSignals`.
+   - `exploratory`: Try a novel angle or hook structure.
+4. For each platform in `missing`, determine its `asset_mode`:
+   - **`link_preview`**: Pure copy with canonical destination URL in main body. No attached media.
+   - **`image_post`**: Media attached. Canonical destination URL in main post body (FB/Threads) or first comment (IG).
+   - **`text_only`**: Pure copy with canonical destination URL in main body. No attached media.
+5. Select or match an available visual asset from `marketing_assets` for `image_post` (with `visualConceptCooldownDays = 7`).
 
-### Step 6: Author Platform Variants for Missing Slots Only
+### Step 9: Author Platform Variants for Missing Slots Only
 Write copy tailored to each platform listed in `missing`:
 
 #### SHORT Post Quality Gate (`copyLengthMode: "short"`):
@@ -199,7 +252,14 @@ Write copy tailored to each platform listed in `missing`:
 - **Claim Safety**: Aggressive rhetorical hooks are allowed. NEVER guarantee A++, score increases, or outcomes. Factual claims require verified sources in `claimManifest`.
 - **Mandatory Main-Body Link Invariant**: EVERY Facebook and Threads post must visibly contain a canonical Paper English destination URL (`https://paperbond.jjmowlab.com...`) in the main post body. The engine automatically appends the attributed UTM URL to `copyText` if omitted. If the author includes a canonical URL, the engine normalizes it with attribution without duplicating. Optional first comment / thread reply is secondary attribution only and NEVER replaces the main-body link.
 
-### Step 7: Output Deterministic Plan JSON
+### Step 10: Anti-Copy Quality Gate ("Learn the reason, not the sentence")
+Before finalizing copy, run an explicit anti-copy check against all loaded winner posts:
+- Check that the authored copy does NOT closely paraphrase any winner.
+- Check that opening lines do NOT reuse identical opening sentence syntax.
+- Reject any copy that feels like an endless variant of a past post.
+- Confirm the new post uses fresh vocabulary and phrasing even when exploiting the same psychological mechanism.
+
+### Step 11: Output Deterministic Plan JSON
 Output the plan JSON payload adhering to `EnqueuePlanInput` for `targetDate`.
 Only include posts for the platforms that had missing slots:
 
@@ -250,18 +310,25 @@ Only include posts for the platforms that had missing slots:
     }
   ],
   "provenance": {
-    "schedulerPromptVersion": "v2.2",
+    "schedulerPromptVersion": "v2.3",
     "generationTimestamp": "<ISO8601 UTC timestamp>",
-    "queueDaysAhead": 3
+    "queueDaysAhead": 3,
+    "winnerReferenceCount": 2,
+    "winningSignalsUsed": [
+      "specific exam numbers + immediate consequence",
+      "direct parent challenge in first sentence"
+    ],
+    "explorationMode": "winner_informed"
   }
 }
 ```
 
-### Step 8: Output Run Summary
+### Step 12: Output Run Summary
 Conclude with a brief summary table:
 - Plan Date & `queueDaysAhead`
 - Chosen Archetype (with 72h freshness compliance noted)
 - Selected `copyLengthMode` & recent rolling ratio
+- Winner Learning: `winnerReferenceCount`, `winningSignalsUsed`, `explorationMode`
 - Research Topic & Sources
 - Planned Posts (Platform, Slot, Asset Mode, Copy Length Mode, CTA Mode, Visual Concept, Copy Preview)
 ```

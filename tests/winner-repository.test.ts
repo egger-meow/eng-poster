@@ -17,7 +17,7 @@ describe('MarketingRepository - Winner Feedback API', () => {
       from: vi.fn((table: string) => {
         if (table === 'marketing_post_feedback') {
           return {
-            select: vi.fn((_cols: string) => {
+            select: vi.fn(() => {
               const chain: any = {
                 eq: vi.fn((col: string, val: any) => {
                   chain._filtered = (chain._filtered ?? feedbackRows).filter((r: any) => r[col] === val);
@@ -66,7 +66,7 @@ describe('MarketingRepository - Winner Feedback API', () => {
 
         if (table === 'marketing_posts') {
           return {
-            select: vi.fn((_cols: string) => {
+            select: vi.fn(() => {
               const chain: any = {
                 eq: vi.fn((col: string, val: any) => {
                   chain._filtered = (chain._filtered ?? postRows).filter((r: any) => r[col] === val);
@@ -97,7 +97,7 @@ describe('MarketingRepository - Winner Feedback API', () => {
 
         if (table === 'marketing_content_plans') {
           return {
-            select: vi.fn((_cols: string) => ({
+            select: vi.fn(() => ({
               in: vi.fn(async (col: string, vals: any[]) => ({
                 data: planRows.filter((r) => vals.includes(r[col])),
                 error: null,
@@ -108,7 +108,7 @@ describe('MarketingRepository - Winner Feedback API', () => {
 
         if (table === 'marketing_assets') {
           return {
-            select: vi.fn((_cols: string) => ({
+            select: vi.fn(() => ({
               in: vi.fn(async (col: string, vals: any[]) => ({
                 data: assetRows.filter((r) => vals.includes(r[col])),
                 error: null,

@@ -101,3 +101,23 @@ Canonical base: `https://paperbond.jjmowlab.com`
 - **NEVER** promise A++, score increases, guaranteed outcomes, testimonials, artificial scarcity, or unsupported product claims.
 - Any phrase involving A++ must clearly function as provocative/rhetorical copy rather than a factual guarantee.
 - Existing `claimManifest` requirements remain authoritative: researched and brand facts require verified source URLs.
+
+## Winner Posts as Behavioral Evidence, Not Templates
+Winning posts are behavioral evidence of what hooked Taiwan parents and students, NEVER copy-paste templates or syntactic crutches.
+
+### Authoritative Rule: "Learn the reason, not the sentence."
+The authoring brain must extract the underlying transferable behavioral mechanism (the hook trigger, psychological angle, density, sentence rhythm), NOT mechanically copy the phrasing.
+
+#### Strictly Forbidden Anti-Patterns:
+- Closely paraphrasing a winning post.
+- Repeatedly reusing the same opening sentence syntax across runs.
+- Generating endless mechanical variants of one successful hook (e.g., Winner: 「會考英文最殘忍的真相：60 分鐘...」 &rarr; Bad clones: 「背單字最殘忍的真相...」, 「國中英文最殘忍的真相...」, 「閱讀最殘忍的真相...」).
+
+#### Correct Behavioral Transfer:
+- **Evidence from Winner**: Specific exam numerical stakes (60 分鐘) + direct parent consequence + emotional friction.
+- **Transferable Execution**: Choose a completely different subject (e.g., 108課綱會考題本長度 7000 字挑戰, or 國小畢業升國中閱讀斷崖) with fresh words, utilizing the same concrete stakes mechanism.
+
+### Exploit vs. Explore Balance (~60–70% / ~30–40%)
+- **Exploit (60–70%)**: Deliberately test novel executions grounded in verified `winningSignals`.
+- **Explore (30–40%)**: Maintain deliberate creative exploration to discover new stop-scroll hooks, contrarian statements, and psychological angles without collapsing into a formulaic style.
+

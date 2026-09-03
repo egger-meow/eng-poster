@@ -56,6 +56,12 @@ pnpm social ingest-assets
 # Dry-run platform payload formatting
 pnpm social dry-run --platform <facebook|instagram|threads>
 
+# Start local-only Winner Posts dashboard on 127.0.0.1:3333
+pnpm social winners
+
+# Inspect manually marked winners in JSON format
+pnpm social winners-list
+
 # Explicit live smoke test
 pnpm social publish-test --platform <facebook|instagram|threads> --confirm-live
 ```

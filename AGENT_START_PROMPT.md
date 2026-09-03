@@ -23,6 +23,7 @@ Core contract:
 - Instagram auth should prefer Instagram API with Instagram Login unless current official docs reveal a blocker.
 - Idempotent publishing and atomic DB job claiming are mandatory.
 - Every Paper English link must carry platform-specific UTM attribution.
+- Winner feedback & learning loop: local-only Winner Posts dashboard (`pnpm social winners` on 127.0.0.1) allows the operator to mark winners and observed metrics into durable `marketing_post_feedback`; future scheduler runs must analyze winners, extract transferable hypotheses, enforce anti-copy safeguards ("Learn the reason, not the sentence"), and balance ~60–70% winner exploitation with ~30–40% creative exploration.
 - Unsupported factual claims must be rejected rather than made more persuasive.
 - Aggressive/stop-scroll hooks are desired, but factual claims must remain evidence-backed.
 - Keep all secrets out of Git/logs/DB state.
