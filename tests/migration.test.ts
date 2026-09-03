@@ -46,6 +46,22 @@ describe('database lease and security contract', () => {
     const alterSql = readFileSync('supabase/migrations/20260902010000_copy_length_mode.sql', 'utf8').toLowerCase();
     expect(alterSql).toContain("copy_length_mode in ('short', 'long')");
   });
+
+  it('enforces marketing_post_feedback forward migration schema, constraints, and RLS', () => {
+    const sql = readFileSync('supabase/migrations/20260903010000_marketing_post_feedback.sql', 'utf8').toLowerCase();
+    expect(sql).toContain('create table if not exists public.marketing_post_feedback');
+    expect(sql).toContain('post_id uuid primary key references public.marketing_posts(id) on delete cascade');
+    expect(sql).toContain('is_winner boolean not null default false');
+    expect(sql).toContain('observed_views bigint check (observed_views is null or observed_views >= 0)');
+    expect(sql).toContain('observed_likes bigint check (observed_likes is null or observed_likes >= 0)');
+    expect(sql).toContain('observed_comments bigint check (observed_comments is null or observed_comments >= 0)');
+    expect(sql).toContain('observed_shares bigint check (observed_shares is null or observed_shares >= 0)');
+    expect(sql).toContain('alter table public.marketing_post_feedback enable row level security;');
+    expect(sql).toContain('revoke all on table public.marketing_post_feedback from anon, authenticated;');
+    expect(sql).toContain('grant all on table public.marketing_post_feedback to service_role;');
+    expect(sql).toContain('idx_marketing_post_feedback_is_winner');
+    expect(sql).toContain('idx_marketing_post_feedback_marked_at');
+  });
 });
 
 
