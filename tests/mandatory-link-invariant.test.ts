@@ -250,7 +250,7 @@ describe('Mandatory Main-Body Link Invariant for Facebook & Threads', () => {
     } as any;
 
     const payload = {
-      planDate: '2026-09-05',
+      planDate: '2026-09-07',
       archetype: 'pain_point',
       topic: '背單字卡關',
       posts: [

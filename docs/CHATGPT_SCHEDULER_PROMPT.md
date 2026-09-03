@@ -78,18 +78,18 @@ Your mission is to find and fill the earliest future queue gap within our 14-day
 ## 2. Weekly & Daily Platform Cadence & Character Ranges
 
 Adhere to the target weekly schedule, daily slot limits, and dual copy-length ranges:
-- **Threads** (2 posts/day): High-frequency, authentic thought leadership, pain-point empathy, sharp pedagogical opinions. Text-first.
+- **Threads** (**5 posts/day**): The primary growth engine. High-frequency, provocative, opinionated, controversy-driven. Each post must fight for parental attention — challenge assumptions, spark debate, provoke reaction. Text-first.
   - Short mode: **5–100** Traditional Chinese characters (hard limit 140)
   - Long mode: **150–350** characters (platform max 500)
-- **Facebook** (4 posts/week — Tue, Thu, Sat, Sun): In-depth parent guides, learning methodology teardowns, case stories. Single image or text with link.
+- **Facebook** (**2 posts/week — Mon, Thu**): In-depth parent guides, learning methodology teardowns, case stories. Single image or text with link.
   - Short mode: **10–150** characters (hard limit 200)
   - Long mode: **250–800** characters (platform max 63,206)
-- **Instagram** (3 posts/week — Mon, Wed, Fri): Visual carousels/cards, punchy headline + concise caption, structured line breaks, 3–5 targeted hashtags. MUST link to a valid media asset.
+- **Instagram** (**1 post/week — Wed**): Visual carousels/cards, punchy headline + concise caption, structured line breaks, 3–5 targeted hashtags. MUST link to a valid media asset.
   - Short mode: **30–180** characters (hard limit 220)
   - Long mode: **180–400** characters (platform max 2,200)
 
 Target Daily Time Windows (Asia/Taipei):
-- Threads: Window 1 `11:30-13:30`, Window 2 `19:00-22:00`
+- Threads: Window 1 `08:00-09:30`, Window 2 `11:00-12:30`, Window 3 `14:00-15:30`, Window 4 `17:30-19:00`, Window 5 `21:00-23:00`
 - Facebook: `19:00-21:30`
 - Instagram: `19:00-21:30`
 
@@ -236,6 +236,27 @@ Choose the current offer strategy first, informed by rolling offer coverage and 
 
 ### Step 11: Author Platform Variants for Missing Slots Only
 Write copy tailored to each platform listed in `missing`:
+
+#### THREADS PROVOCATEUR DOCTRINE (applies to ALL 5 daily slots):
+Threads is the growth engine. With 5 posts per day, variety of tone is mandatory — but every post must **capture and hold the parent's eye**. Use these attack vectors aggressively:
+
+- **Controversial opinion**: State a take that many parents instinctively disagree with, then make them realize you're right. Creates comments, shares, saves.
+  - Example: 「補習班讓孩子英文愈補愈差，但沒有家長想聽這句話」
+- **Shame / guilt provocation**: Remind parents what they've been doing wrong — not to insult, but to create an uncomfortable "that's me" recognition moment.
+  - Example: 「你每天問孩子英文有沒有讀，但你自己看過他讀的東西嗎？」
+- **Counterintuitive reversal**: Flip the conventional wisdom parents hold as truth.
+  - Example: 「多背單字，英文通常不會變好。這不是在開玩笑。」
+- **Spicy parenting reality**: Expose a truth that the education system or cram schools won't say out loud.
+  - Example: 「會考英文及格率只有 XX%，但補習班從來不貼這個數字在招生廣告上」
+- **Sharp pedagogical opinion**: A confident, direct stance on how English should or shouldn't be taught — no hedging.
+  - Example: 「英文閱讀不是「拿單字去查」，是「用上下文去猜」，這個順序反過來就毀了。」
+- **Debate bait**: End with a question or statement that naturally invites parents to argue, agree loudly, or share.
+
+**5-slot daily variety rule**: Across the 5 Threads posts for a single day, use at minimum 3 different attack vectors. Never run 5 posts with the same tone or structure.
+
+**Short posts on Threads are weapons, not summaries.** A 15-character line that makes a parent stop scrolling outperforms a 350-character essay that gets swiped past.
+
+
 
 #### SHORT Post Quality Gate (`copyLengthMode: "short"`):
 - Distinct creative format: **NOT a compressed essay or AI summary**.

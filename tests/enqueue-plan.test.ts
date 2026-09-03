@@ -230,8 +230,14 @@ describe('scheduler ingestion contract and validation gates', () => {
     const mockRepo = {
       getRecentVisualConcepts: async () => [],
       findPlan: async () => 'existing-plan-uuid',
-      getExistingPostsForDate: async () => [{ id: 'p1' }, { id: 'p2' }, { id: 'p3' }], // already 3 posts (threads cap)
-      countPostsForDateRange: async () => 3,
+      getExistingPostsForDate: async () => [
+        { id: 'p1', idempotency_key: '2026-09-01:threads:1' },
+        { id: 'p2', idempotency_key: '2026-09-01:threads:2' },
+        { id: 'p3', idempotency_key: '2026-09-01:threads:3' },
+        { id: 'p4', idempotency_key: '2026-09-01:threads:4' },
+        { id: 'p5', idempotency_key: '2026-09-01:threads:5' },
+      ], // already 5 posts (threads cap)
+      countPostsForDateRange: async () => 5,
     } as any;
 
     const payload = {
@@ -293,7 +299,7 @@ describe('scheduler ingestion contract and validation gates', () => {
     } as any;
 
     const payload = {
-      planDate: '2026-09-01',
+      planDate: '2026-09-07',
       archetype: 'pain_point',
       topic: 'Test Topic',
       posts: [
@@ -322,7 +328,7 @@ describe('scheduler ingestion contract and validation gates', () => {
     } as any;
 
     const payload = {
-      planDate: '2026-08-31',
+      planDate: '2026-09-02',
       archetype: 'pain_point',
       topic: 'Test Topic',
       posts: [
