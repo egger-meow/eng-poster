@@ -1,3 +1,5 @@
+import type { OfferState } from '../src/offer/state.js';
+const getTestOffer = async (): Promise<OfferState> => ({ offerPhase: 'standard_paid', freePilotActive: false, freePilotAdmissions: 100, freePilotLimit: 100, capacityRemaining: 1, status: 'open', checkedAt: '2026-09-03T00:00:00.000Z' });
 import { describe, expect, it } from 'vitest';
 import {
   validatePreparedPost,
@@ -270,7 +272,7 @@ describe('Mandatory Main-Body Link Invariant for Facebook & Threads', () => {
       ],
     };
 
-    const result = await enqueuePlan(payload, mockRepo);
+    const result = await enqueuePlan(payload, mockRepo, getTestOffer);
     expect(result.enqueued).toBe(2);
     expect(scheduledPosts).toHaveLength(2);
 

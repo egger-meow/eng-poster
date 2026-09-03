@@ -1,3 +1,5 @@
+import type { OfferState } from '../src/offer/state.js';
+const getTestOffer = async (): Promise<OfferState> => ({ offerPhase: 'standard_paid', freePilotActive: false, freePilotAdmissions: 100, freePilotLimit: 100, capacityRemaining: 1, status: 'open', checkedAt: '2026-09-03T00:00:00.000Z' });
 import { describe, expect, it } from 'vitest';
 import { enqueuePlanSchema } from '../src/orchestration/enqueue-plan.js';
 import { attributedUrl } from '../src/content/utm.js';
@@ -185,7 +187,7 @@ describe('scheduler ingestion contract and validation gates', () => {
       ],
     };
 
-    const result = await (await import('../src/orchestration/enqueue-plan.js')).enqueuePlan(payload, mockRepo);
+    const result = await (await import('../src/orchestration/enqueue-plan.js')).enqueuePlan(payload, mockRepo, getTestOffer);
     expect(result.enqueued).toBe(1);
     expect(result.planId).toBe('plan-uuid-1234');
     expect(scheduledPosts).toHaveLength(1);
@@ -220,7 +222,7 @@ describe('scheduler ingestion contract and validation gates', () => {
     };
 
     await expect(
-      (await import('../src/orchestration/enqueue-plan.js')).enqueuePlan(payload, mockRepo)
+      (await import('../src/orchestration/enqueue-plan.js')).enqueuePlan(payload, mockRepo, getTestOffer)
     ).rejects.toThrow('missing required source URLs');
   });
 
@@ -244,7 +246,7 @@ describe('scheduler ingestion contract and validation gates', () => {
       ],
     };
 
-    const result = await (await import('../src/orchestration/enqueue-plan.js')).enqueuePlan(payload, mockRepo);
+    const result = await (await import('../src/orchestration/enqueue-plan.js')).enqueuePlan(payload, mockRepo, getTestOffer);
     expect(result.enqueued).toBe(0);
     expect(result.skipped).toBe(1);
     expect(result.errors[0]).toContain('Daily cap reached');
@@ -276,7 +278,7 @@ describe('scheduler ingestion contract and validation gates', () => {
     };
 
     const { enqueuePlan } = await import('../src/orchestration/enqueue-plan.js');
-    const result = await enqueuePlan(payload, mockRepo);
+    const result = await enqueuePlan(payload, mockRepo, getTestOffer);
     expect(result.enqueued).toBe(1);
     expect(scheduledPost.assetMode).toBe('text_only');
     expect(scheduledPost.mediaUrl).toBeNull();
@@ -306,7 +308,7 @@ describe('scheduler ingestion contract and validation gates', () => {
     };
 
     const { enqueuePlan } = await import('../src/orchestration/enqueue-plan.js');
-    await expect(enqueuePlan(payload, mockRepo)).rejects.toThrow(
+    await expect(enqueuePlan(payload, mockRepo, getTestOffer)).rejects.toThrow(
       /facebook link_preview must not have an attached media asset/
     );
   });
@@ -333,7 +335,7 @@ describe('scheduler ingestion contract and validation gates', () => {
     };
 
     const { enqueuePlan } = await import('../src/orchestration/enqueue-plan.js');
-    await expect(enqueuePlan(payload, mockRepo)).rejects.toThrow(
+    await expect(enqueuePlan(payload, mockRepo, getTestOffer)).rejects.toThrow(
       /instagram only supports image_post mode/
     );
   });

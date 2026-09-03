@@ -17,3 +17,17 @@ for (const required of ['claim_marketing_posts', 'enable row level security', 'm
 
 console.log('Migration contract verified.');
 
+
+const offerSql = await readFile('supabase/migrations/20260903064118_marketing_offer_gate.sql', 'utf8');
+for (const required of [
+  "add column offer_gate text", "offer_gate = 'free_pilot_active'", 'add column first_comment_text text',
+  'cancel_marketing_offer_post', 'security invoker', "status = 'cancelled'", ":cancelled:",
+  "status in ('scheduled', 'claimed', 'retryable_failed', 'provider_scheduled')",
+  'revoke all on function public.cancel_marketing_offer_post(uuid, text) from public, anon, authenticated;',
+]) {
+  if (!offerSql.includes(required)) throw new Error(`Offer migration missing ${required}`);
+}
+if (/enrollment_settings|historical_pilot_admissions|free_pilot_ended_at/i.test(offerSql)) {
+  throw new Error('Marketing migration must not modify enrollment authority');
+}
+console.log('Offer gate and cancellation migration contract verified.');

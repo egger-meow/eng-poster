@@ -1,4 +1,5 @@
 import type { CopyLengthMode, PreparedPost, ValidationResult } from '../types.js';
+import { validateOfferCopy } from '../offer/claims.js';
 import { hasRequiredUtm } from './utm.js';
 import {
   COPY_LENGTH_RANGES,
@@ -91,7 +92,7 @@ export function formatThreadsReply(post: PreparedPost): string | null {
 }
 
 export function validatePreparedPost(post: PreparedPost): ValidationResult {
-  const errors: string[] = [];
+  const errors: string[] = validateOfferCopy(post);
   const copy = post.copyText.trim();
 
   // 1. Basic copy validations

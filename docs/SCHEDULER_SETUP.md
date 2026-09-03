@@ -137,7 +137,7 @@ The safest, production-hardened pattern is:
    - Deterministic slot timing and collision avoidance
    - UTM parameter generation and clean first-comment attribution
    - SHA-256 content hashing and idempotent deduplication
-3. **Safe Queue Insertion**: Only fully-validated plans and posts are written into Supabase.
+3. **Safe Queue Insertion**: Offer validation occurs before plan writes and again before sensitive post writes. Other validation is per post; a later failure can leave earlier valid posts enqueued.
 
 ### CLI Usage:
 ```bash
@@ -160,7 +160,7 @@ pnpm social enqueue-plan --input '{"planDate":"2026-09-05","archetype":"pain_poi
    - Core guides: `audience.md`, `brand.md`, `claims.md`, `product.md`, `voice.md`.
    - All example files: `knowledge/examples/**` (`knowledge/examples/*.md`, used together as reference benchmarks across all platforms).
 5. Copy the entire contents of [docs/CHATGPT_SCHEDULER_PROMPT.md](file:///c:/IDEA/eng-poster/docs/CHATGPT_SCHEDULER_PROMPT.md) into the task instructions.
-6. Execution: The task reads `next-queue-gap`, loads winners via `winners-list`, targets the missing slots, and outputs the validated plan JSON.
+6. Execution: The task reads repository state and knowledge, runs `next-queue-gap` then mandatory `offer-state`, inspects the queue, loads winners via `winners-list`, targets the missing slots, and outputs the validated plan JSON.
 
 ---
 
@@ -237,3 +237,16 @@ pnpm social queue-health --hours 336
 ```
 
 The GitHub Actions workflow [.github/workflows/queue-health.yml](file:///c:/IDEA/eng-poster/.github/workflows/queue-health.yml) automatically runs daily to report on 336 hours of upcoming posts.
+
+## Dynamic offer state
+
+**FREE PILOT IS A DYNAMIC OFFER, NOT A PERMANENT PRODUCT FACT.** Current truth must always come from `pnpm social offer-state` before authoring. Public canonical wording: 「100 位學員以前，每週專屬教材免費。」 See [OFFER_CONTRACT.md](OFFER_CONTRACT.md) for the authoritative phase model, claim rules, Buffer cancellation capability and residual timing risk.
+
+```bash
+pnpm social offer-state
+pnpm social offer-sensitive-queue
+```
+
+`offerPhase` is `free_pilot | standard_paid`. Persist live plan provenance and per-post `offerGate: null | free_pilot_active`; enqueue and dispatch revalidate, and provider reconciliation checks future offer posts for official deletion when invalid. The inspection command is read-only and does not rewrite existing posts. Historical winner offers do not authorize current claims.
+
+Apply `supabase/migrations/20260903064118_marketing_offer_gate.sql` before using the new durable gate/cancellation path. Update any saved external scheduler prompt. No new secret is required; existing Supabase settings must target production `ykzszjrqynrhgdhoeovo`.

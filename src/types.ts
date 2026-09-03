@@ -1,3 +1,4 @@
+import type { OfferGate, OfferPhase } from './offer/state.js';
 export const platforms = ['facebook', 'instagram', 'threads'] as const;
 export type Platform = (typeof platforms)[number];
 
@@ -24,6 +25,7 @@ export interface ResearchSnapshot { query: string; sources: SourceRecord[]; fact
 export interface Claim { text: string; kind: 'brand_fact' | 'researched_fact' | 'opinion' | 'rhetorical'; sourceUrls: string[] }
 
 export interface PreparedPost {
+  offerGate?: OfferGate | undefined;
   id: string;
   contentPlanId: string;
   platform: Platform;
@@ -104,6 +106,7 @@ export interface PostFeedbackRecord {
 }
 
 export interface PublishedPostWithFeedback {
+  offerPhase?: OfferPhase | null;
   id: string;
   platform: Platform;
   assetMode: AssetMode;
@@ -122,6 +125,8 @@ export interface PublishedPostWithFeedback {
 }
 
 export interface WinnerPostContext {
+  offerPhase?: OfferPhase | null;
+  offerDependent?: boolean;
   postId: string;
   platform: Platform;
   copyText: string;
@@ -146,8 +151,10 @@ export interface WinnerPostContext {
 }
 
 export interface WinningSignal {
+  sourceOfferPhase?: OfferPhase | null;
+  offerDependent?: boolean;
   signal: string;
   evidencePostIds: string[];
   confidence: 'high' | 'medium' | 'low';
-  notes?: string;
+  notes?: string | undefined;
 }

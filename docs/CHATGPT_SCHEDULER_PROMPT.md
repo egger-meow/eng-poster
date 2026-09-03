@@ -11,6 +11,8 @@ Your mission is to find and fill the earliest future queue gap within our 14-day
 
 ---
 
+**FREE PILOT IS A DYNAMIC OFFER, NOT A PERMANENT PRODUCT FACT.** Internal phase names must be translated into professional public language from `knowledge/claims.md`. Current truth comes from `offer-state` on every authoring run.
+
 ## 1. Operating Rules & Core Constraints
 
 1. **Queue-Aware Conveyor Belt Contract (Earliest Future Queue Gap)**:
@@ -107,10 +109,12 @@ Balance content archetypes across a rolling 30-day window:
 - Do NOT make every post educational essay length.
 - Choose `copyLengthMode` (`short` or `long`) before writing based on the underrepresented mode in recent queued/published posts.
 
-Call-to-Action (CTA) Distribution:
+Call-to-Action (CTA) Distribution for `standard_paid` (configured baseline):
 - `none` (50%): Pure value, thought leadership, punchy hook, or community discussion. No explicit sales pitch, but the canonical Paper English URL is still present unobtrusively in the main post body (NO CTA != NO LINK).
 - `soft` (30%): "歡迎在個人檔案連結了解更多 / 留言分享你的看法" or subtle invitation + URL.
 - `direct` (20%): Clear action invitation to request custom sample reading materials + URL.
+
+While live `free_pilot` acquisition is available, use the [voice.md](../knowledge/voice.md) strategy: 60–70% of conversion-capable content explicitly mentions current free access or ends on that reveal; 30–40% stays educational/provocative/winner-informed. CTA direction becomes none 30%, soft 35%, direct 35%, adjusted by winner evidence. Do not force every opening to mention free. Public canonical offer: 「100 位學員以前，每週專屬教材免費。」 Never expose internal testing terms; follow `knowledge/claims.md`.
 
 ### Authoritative Link Invariant:
 **EVERY FACEBOOK AND THREADS POST MUST LEAD BACK TO PAPER ENGLISH IN THE MAIN BODY.**
@@ -126,7 +130,10 @@ UTM Attribution Format:
 
 When executing your scheduled or on-demand planning run:
 
-### Step 1: Read All Knowledge & Reference Examples
+### Step 1: Read Current Repository State
+Read current branch, working tree, runtime contracts and scheduler guidance. Do not assume historical setup prompts remain authoritative.
+
+### Step 2: Read All Knowledge & Reference Examples
 1. Read all core brand knowledge files:
    - `knowledge/brand.md`: Brand positioning, canonical domain (`https://paperbond.jjmowlab.com`).
    - `knowledge/voice.md`: Traditional Chinese, sharp hooks, parent-relatable, conservative truth claims, zero generic AI fluff, authoritative 1:1 copy length contract.
@@ -136,7 +143,7 @@ When executing your scheduled or on-demand planning run:
 2. Read **ALL markdown files in `knowledge/examples/**` (`knowledge/examples/*.md`)**:
    - Inspect all `.md` files together as your unified benchmark for tone, structure, pacing, and hooks across Threads, Facebook, and Instagram.
 
-### Step 2: Identify Target Date & Missing Slots (Next Queue Gap)
+### Step 3: Identify Target Date & Missing Slots (Next Queue Gap)
 Obtain the target date and missing slots from `pnpm social next-queue-gap` (or query Supabase):
 ```json
 {
@@ -153,16 +160,19 @@ Obtain the target date and missing slots from `pnpm social next-queue-gap` (or q
 - If `targetDate` is `null`: All slots within the 14-day stockpile horizon are full. Stop execution and output queue health.
 - Note `targetDate`, `queueDaysAhead`, list of missing platform slots, and `recommendedCopyLengthMode`.
 
-### Step 3: Inspect Future Queue & Gaps
-Inspect upcoming queue slots to confirm which platform slots are open for `targetDate`.
+### Step 4: Mandatory Live Offer State
+Run `pnpm social offer-state`. It must succeed before authoring. Record the exact live `offerPhase`, `offerSnapshot` fields and `validOfferClaims`; never use website scraping or old knowledge text as state authority. Check `knowledge/claims.md` for forbidden public terminology and `docs/OFFER_CONTRACT.md` for the dynamic model. If unavailable, stop authoring and report the failed verification.
 
-### Step 4: Load Manually Marked Winner Posts
+### Step 5: Inspect Future Queue & Gaps
+Inspect current/future queue slots to confirm open slots for `targetDate`; run `pnpm social offer-sensitive-queue` to inspect current offer coverage and legacy review reasons. Do not rewrite existing queued posts.
+
+### Step 6: Load Manually Marked Winner Posts
 Inspect manually marked winners via `pnpm social winners-list` (or query `marketing_post_feedback` where `is_winner = true`):
 - Check for high-performing posts across Threads, Facebook, and Instagram.
-- If **zero winners exist** (`count: 0`): Continue authoring normally in exploratory mode (`explorationMode: "exploratory"`), set `winnerReferenceCount: 0`, and proceed to Step 6. Zero winners must never fail or halt the authoring run.
+- If **zero winners exist** (`count: 0`): Continue authoring normally in exploratory mode (`explorationMode: "exploratory"`), set `winnerReferenceCount: 0`, and proceed to Step 8. Zero winners must never fail or halt the authoring run.
 - If winners exist: Note their `platform`, `copyText`, `copyLengthMode`, `assetMode`, `archetype`, `topic`, `visualConcept`, `observedViews`, `observedLikes`, `observedComments`, `observedShares`, and `operatorNote`.
 
-### Step 5: Mandatory WINNER ANALYSIS Phase & Deriving Winning Signals
+### Step 7: Mandatory WINNER ANALYSIS Phase & Deriving Winning Signals
 Extract transferable behavioral hypotheses about why the winners performed well. Analyze at minimum:
 1. **HOOK**: What makes the opening line stop-scroll? Specific number? Direct challenge? Parent anxiety? Teasing / insult? Contrarian provocation? Concrete scenario?
 2. **ANGLE**: Anxiety, aspiration, humor, outrage, curiosity, practical utility, identity, student frustration, etc.
@@ -194,19 +204,22 @@ Before writing copy, derive a concise internal structure of winning signals:
 }
 ```
 
-### Step 6: Inspect Recent History in Supabase
+Expired offer facts are NEVER transferable winning signals. Inspect each winner's `sourceOfferPhase`, `offerDependent` and `offerClaimsReusable` against the current phase. Transfer low friction, direct challenge, value contrast and other mechanisms; never transfer expired free/no-credit-card/100-person claims. Structured signal reports may include `sourceOfferPhase` and `offerDependent`.
+
+### Step 8: Inspect Recent History in Supabase
 Run queries against Supabase:
 1. Query `marketing_content_plans` for the past 14 days (`plan_date >= targetDate - 14 days`) to determine recently used archetypes and topics.
 2. Query `marketing_posts` for recent long vs short distribution to enforce the 1:1 mix.
 3. Query `marketing_posts` for the week of `targetDate` to confirm remaining weekly quotas.
 4. Query `marketing_assets` to view available approved images and their recent usage (`last_used_at`, `usage_count`, `concept`) with `visualConceptCooldownDays = 7`.
 
-### Step 7: Perform Real Web Research
+### Step 9: Perform Real Web Research
 - **If `queueDaysAhead <= 3`**: May research breaking/trending Taiwan education discussions, 108 課綱 news, or CAP (會考) English trends.
 - **If `queueDaysAhead > 3`**: Focus research on evergreen pedagogical topics, English reading methodology, cognitive science, or authentic student interests (e.g. popular gaming universes, sports science, astronomy).
 Extract verified factual notes and store authoritative source URLs.
 
-### Step 8: Select Archetype, Copy Length Mode, Platform Post Strategy & Hypothesis Mode
+### Step 10: Select Offer Strategy, Archetype, Copy Length & Winner/Explore Hypothesis
+Choose the current offer strategy first, informed by rolling offer coverage and winners. Then:
 1. Pick the most underrepresented archetype from the content mix.
    - **Enforce 72h Freshness Rule**: If `queueDaysAhead > 3`, do NOT use `timely_topic`. Select an evergreen archetype.
 2. Select **`copyLengthMode`** (`short` or `long`):
@@ -221,7 +234,7 @@ Extract verified factual notes and store authoritative source URLs.
    - **`text_only`**: Pure copy with canonical destination URL in main body. No attached media.
 5. Select or match an available visual asset from `marketing_assets` for `image_post` (with `visualConceptCooldownDays = 7`).
 
-### Step 9: Author Platform Variants for Missing Slots Only
+### Step 11: Author Platform Variants for Missing Slots Only
 Write copy tailored to each platform listed in `missing`:
 
 #### SHORT Post Quality Gate (`copyLengthMode: "short"`):
@@ -252,16 +265,20 @@ Write copy tailored to each platform listed in `missing`:
 - **Claim Safety**: Aggressive rhetorical hooks are allowed. NEVER guarantee A++, score increases, or outcomes. Factual claims require verified sources in `claimManifest`.
 - **Mandatory Main-Body Link Invariant**: EVERY Facebook and Threads post must visibly contain a canonical Paper English destination URL (`https://paperbond.jjmowlab.com...`) in the main post body. The engine automatically appends the attributed UTM URL to `copyText` if omitted. If the author includes a canonical URL, the engine normalizes it with attribution without duplicating. Optional first comment / thread reply is secondary attribution only and NEVER replaces the main-body link.
 
-### Step 10: Anti-Copy Quality Gate ("Learn the reason, not the sentence")
+### Step 12: Anti-Copy Quality Gate ("Learn the reason, not the sentence")
 Before finalizing copy, run an explicit anti-copy check against all loaded winner posts:
 - Check that the authored copy does NOT closely paraphrase any winner.
 - Check that opening lines do NOT reuse identical opening sentence syntax.
 - Reject any copy that feels like an endless variant of a past post.
 - Confirm the new post uses fresh vocabulary and phrasing even when exploiting the same psychological mechanism.
 
-### Step 11: Output Deterministic Plan JSON
+### Step 13: Validate Offer-Dependent Claims
+Explicitly set each post's `offerGate` to `"free_pilot_active"` or `null`. Review body, first comments and image text. Free-access claims require the active live phase; lifetime-free claims, queued remaining-count scarcity and public testing terminology are forbidden. No invented deadline. Stable threshold wording only with the confirmed limit. Put the live `offerPhase` and full `offerSnapshot` in provenance. Do not copy the illustrative counts from any document. When evidence/phase expires, re-author before enqueue.
+
+### Step 14: Output Plan JSON and Run enqueue-plan
+Run `pnpm social enqueue-plan --input payload.json` after validating the following schema. Its live recheck is mandatory; do not insert via SQL.
 Output the plan JSON payload adhering to `EnqueuePlanInput` for `targetDate`.
-Only include posts for the platforms that had missing slots:
+Only include posts for the platforms that had missing slots. The template below omits live offer values deliberately: add `provenance.offerPhase` and the complete live `provenance.offerSnapshot` from Step 4 before ingestion. Never leave offer-sensitive example posts at `offerGate: null`.
 
 ```json
 {
@@ -288,6 +305,7 @@ Only include posts for the platforms that had missing slots:
     {
       "platform": "threads",
       "copyLengthMode": "short",
+      "offerGate": null,
       "assetMode": "text_only",
       "copyText": "<Post copy in Traditional Chinese, 5-100 chars>",
       "claimManifest": [
@@ -302,6 +320,7 @@ Only include posts for the platforms that had missing slots:
     {
       "platform": "instagram",
       "copyLengthMode": "long",
+      "offerGate": null,
       "assetMode": "image_post",
       "copyText": "<Card headline and punchy caption, 180-400 chars. NO raw URL in body>",
       "claimManifest": [],
@@ -310,7 +329,7 @@ Only include posts for the platforms that had missing slots:
     }
   ],
   "provenance": {
-    "schedulerPromptVersion": "v2.3",
+    "schedulerPromptVersion": "v2.4-offer-aware",
     "generationTimestamp": "<ISO8601 UTC timestamp>",
     "queueDaysAhead": 3,
     "winnerReferenceCount": 2,
@@ -323,7 +342,13 @@ Only include posts for the platforms that had missing slots:
 }
 ```
 
-### Step 12: Output Run Summary
+### Step 15: Verify Queue Health
+Run `pnpm social queue-health --hours 336` and inspect errors or invalidations.
+
+### Step 16: Check the Next Gap
+Run `pnpm social next-queue-gap` again. Continue only for missing future slots; stop when full.
+
+### Run Summary
 Conclude with a brief summary table:
 - Plan Date & `queueDaysAhead`
 - Chosen Archetype (with 72h freshness compliance noted)

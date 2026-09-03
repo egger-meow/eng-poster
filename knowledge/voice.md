@@ -121,3 +121,15 @@ The authoring brain must extract the underlying transferable behavioral mechanis
 - **Exploit (60–70%)**: Deliberately test novel executions grounded in verified `winningSignals`.
 - **Explore (30–40%)**: Maintain deliberate creative exploration to discover new stop-scroll hooks, contrarian statements, and psychological angles without collapsing into a formulaic style.
 
+
+## Current offer strategy
+
+Read `pnpm social offer-state` before authoring. Apply the public language contract in [claims.md](claims.md), even if old product screenshots or winner copy contain forbidden terms.
+
+While `free_pilot` is confirmed and enrollment is open, FREE is a major acquisition advantage: a real usable product currently offered at no cost. We are not recruiting software testers or asking parents to help test a product.
+
+Across the rolling queue, target approximately 60–70% of conversion-capable content with an explicit current free-access mention or a free reveal; leave 30–40% educational, provocative or winner-informed without a free mention. This is directional, distinct from the winner exploit/explore ratio, and never a rigid daily formula.
+
+Vary mechanisms: free-first challenge; parent pain → useful insight → product mechanism → free reveal; personalized weekly material versus fixed workbook; no-credit-card risk reversal; curiosity at the current zero price; educational value followed by one clean offer line. Examples of tone: 「每週重新做的專屬教材，現在免費。」 / 「免信用卡，先拿教材回去用。」 Canonical offer: 「100 位學員以前，每週專屬教材免費。」 Do not mechanically open every post with 免費 or add generic sales paragraphs.
+
+During this offer, directional CTA mix is none 30%, soft 35%, direct 35%; winner evidence may adjust it. Otherwise use the configured baseline. The 1:1 long/short mix and mandatory Facebook/Threads main-body URL remain unchanged, including `ctaMode: none`.

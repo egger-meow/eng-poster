@@ -312,6 +312,21 @@ export class BufferClient {
     return data.createPost.post;
   }
 
+  async deletePost(id: string): Promise<void> {
+    const data = await this.request<{ deletePost?: { __typename?: string; id?: string; message?: string } }>(`
+      mutation DeletePost($input: DeletePostInput!) {
+        deletePost(input: $input) {
+          __typename
+          ... on DeletePostSuccess { id }
+          ... on MutationError { message }
+        }
+      }
+    `, { input: { id } });
+    if (data?.deletePost?.__typename !== 'DeletePostSuccess' || data.deletePost.id !== id) {
+      throw new PlatformError(`Buffer cancellation unconfirmed: ${data?.deletePost?.message ?? 'unexpected deletePost response'}`, 500);
+    }
+  }
+
   async getPost(id: string): Promise<BufferPostResult | null> {
     const data = await this.request<{
       post?: BufferPostResult | null;
@@ -334,7 +349,10 @@ export class BufferClient {
       { input: { id } }
     );
 
-    return data?.post ?? null;
+    if (!data || !Object.hasOwn(data, 'post') || (data.post !== null && (!data.post?.id || !data.post.status))) {
+      throw new PlatformError('Buffer post lookup returned malformed data; absence is unconfirmed', 500);
+    }
+    return data.post ?? null;
   }
 
   async getChannelPosts(channelId: string, limit = 20): Promise<BufferPostResult[]> {
@@ -416,6 +434,10 @@ export class BufferPublisher extends BasePublisher implements SocialPublisher {
         diagnostic: err instanceof Error ? err.message : 'Unknown Buffer validation error',
       };
     }
+  }
+
+  async deletePost(id: string): Promise<void> {
+    return this.client.deletePost(id);
   }
 
   async getPost(id: string): Promise<BufferPostResult | null> {

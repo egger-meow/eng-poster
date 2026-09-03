@@ -11,6 +11,8 @@ import type {
   WinnerPostContext,
 } from '../types.js';
 import { classifyCopyLengthMode } from '../content/ranges.js';
+import type { OfferPhase } from '../offer/state.js';
+import { hasOfferLanguage } from '../offer/claims.js';
 import { getSupabase } from './client.js';
 
 
@@ -47,12 +49,15 @@ export class MarketingRepository {
     return checked(data, error).id as string;
   }
 
-  async findPlan(planDate: string, archetype: string): Promise<string | null> {
+  async findPlan(planDate: string, archetype: string, offerPhase?: OfferPhase): Promise<string | null> {
     const { data, error } = await this.db
       .from('marketing_content_plans')
       .select('id')
       .eq('plan_date', planDate)
       .eq('archetype', archetype)
+      .eq('provenance->>offerPhase', offerPhase ?? '')
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
     if (error) throw new Error(error.message);
     return data?.id ?? null;
@@ -71,6 +76,9 @@ export class MarketingRepository {
       idempotency_key: post.idempotencyKey,
       content_hash: contentHash,
       claim_manifest: post.claimManifest,
+      offer_gate: post.offerGate ?? null,
+      first_comment_text: post.firstCommentText ?? null,
+      cta_mode: post.ctaMode ?? null,
     };
     if (post.copyLengthMode) {
       payload.copy_length_mode = post.copyLengthMode;
@@ -82,9 +90,7 @@ export class MarketingRepository {
     );
     if (
       error &&
-      (error.code === 'PGRST204' ||
-        error.message?.includes('copy_length_mode') ||
-        error.message?.includes('does not exist'))
+      error.message?.includes('copy_length_mode')
     ) {
       delete payload.copy_length_mode;
       const { error: retryErr } = await this.db.from('marketing_posts').upsert(
@@ -130,11 +136,46 @@ export class MarketingRepository {
     return checked(data, error) ?? [];
   }
 
-  async releaseClaim(postId: string): Promise<void> {
+  async cancelOfferPost(postId: string, reason: string): Promise<void> {
+    const { error } = await this.db.rpc('cancel_marketing_offer_post', { p_post_id: postId, p_reason: reason });
+    checked(true, error);
+  }
+
+  async holdOfferSubmission(postId: string, message: string, providerId?: string): Promise<void> {
+    const { error } = await this.db.from('marketing_posts').update({
+      status: 'provider_scheduled', provider_status: 'offer_submission_unconfirmed',
+      ...(providerId ? { platform_post_id: providerId } : {}),
+      last_error: message.slice(0, 1000), lease_token: null, lease_expires_at: null,
+    }).eq('id', postId).in('status', ['claimed', 'provider_scheduled']);
+    checked(true, error);
+  }
+
+  async recordOfferIssue(postId: string, message: string): Promise<void> {
+    const { error } = await this.db.from('marketing_posts').update({ last_error: message.slice(0, 1000) })
+      .eq('id', postId).in('status', ['claimed', 'provider_scheduled', 'scheduled']);
+    checked(true, error);
+  }
+
+  async getOfferSensitiveQueueRows(): Promise<any[]> {
+    // Paginated, including overdue unresolved provider rows; no Buffer calls or mutations.
+    const rows: any[] = [];
+    for (let offset = 0; ; offset += 500) {
+      const { data, error } = await this.db.from('marketing_posts').select('*')
+        .in('status', ['scheduled', 'claimed', 'retryable_failed', 'provider_scheduled'])
+        .order('scheduled_for').order('id').range(offset, offset + 499);
+      const page = checked(data, error) ?? [];
+      rows.push(...page);
+      if (page.length < 500) break;
+    }
+    return rows;
+  }
+
+  async releaseClaim(postId: string, claimedAttemptCount?: number): Promise<void> {
     const { error } = await this.db
       .from('marketing_posts')
       .update({
         status: 'scheduled',
+        ...(claimedAttemptCount !== undefined ? { attempt_count: Math.max(0, claimedAttemptCount - 1) } : {}),
         lease_token: null,
         lease_expires_at: null,
       })
@@ -169,13 +210,15 @@ export class MarketingRepository {
   }
 
   async getProviderScheduledPosts(beforeIso: string): Promise<any[]> {
-    const { data, error } = await this.db
-      .from('marketing_posts')
-      .select('*')
-      .eq('status', 'provider_scheduled')
-      .lte('scheduled_for', beforeIso)
-      .order('scheduled_for', { ascending: true });
-    return checked(data, error) ?? [];
+    const rows: any[] = [];
+    for (let offset = 0; ; offset += 500) {
+      const { data, error } = await this.db.from('marketing_posts').select('*')
+        .eq('status', 'provider_scheduled').lte('scheduled_for', beforeIso)
+        .order('scheduled_for', { ascending: true }).order('id').range(offset, offset + 499);
+      const page = checked(data, error) ?? [];
+      rows.push(...page);
+      if (page.length < 500) return rows;
+    }
   }
 
   async reconcilePublished(
@@ -805,15 +848,15 @@ export class MarketingRepository {
     const planIds = [...new Set(posts.map((p: any) => p.content_plan_id).filter(Boolean))];
     const assetIds = [...new Set(posts.map((p: any) => p.media_asset_id).filter(Boolean))];
 
-    const planMap = new Map<string, { archetype: string; topic: string }>();
+    const planMap = new Map<string, { archetype: string; topic: string; offerPhase: OfferPhase | null }>();
     if (planIds.length > 0) {
       const { data: plans, error: planErr } = await this.db
         .from('marketing_content_plans')
-        .select('id, archetype, topic')
+        .select('id, archetype, topic, provenance')
         .in('id', planIds);
       const planRows = checked(plans, planErr) ?? [];
       for (const p of planRows) {
-        planMap.set(p.id, { archetype: p.archetype, topic: p.topic });
+        planMap.set(p.id, { archetype: p.archetype, topic: p.topic, offerPhase: ['free_pilot', 'standard_paid'].includes(p.provenance?.offerPhase) ? p.provenance.offerPhase : null });
       }
     }
 
@@ -848,6 +891,7 @@ export class MarketingRepository {
         platformPostUrl: p.platform_post_url ?? null,
         contentPlanId: p.content_plan_id ?? null,
         mediaAssetId: p.media_asset_id ?? null,
+        offerPhase: plan?.offerPhase ?? null,
         archetype: plan?.archetype ?? null,
         topic: plan?.topic ?? null,
         visualConcept: asset?.concept ?? null,
@@ -922,15 +966,15 @@ export class MarketingRepository {
     const planIds = [...new Set(posts.map((p: any) => p.content_plan_id).filter(Boolean))];
     const assetIds = [...new Set(posts.map((p: any) => p.media_asset_id).filter(Boolean))];
 
-    const planMap = new Map<string, { archetype: string; topic: string }>();
+    const planMap = new Map<string, { archetype: string; topic: string; offerPhase: OfferPhase | null }>();
     if (planIds.length > 0) {
       const { data: plans, error: planErr } = await this.db
         .from('marketing_content_plans')
-        .select('id, archetype, topic')
+        .select('id, archetype, topic, provenance')
         .in('id', planIds);
       const planRows = checked(plans, planErr) ?? [];
       for (const p of planRows) {
-        planMap.set(p.id, { archetype: p.archetype, topic: p.topic });
+        planMap.set(p.id, { archetype: p.archetype, topic: p.topic, offerPhase: ['free_pilot', 'standard_paid'].includes(p.provenance?.offerPhase) ? p.provenance.offerPhase : null });
       }
     }
 
@@ -962,10 +1006,12 @@ export class MarketingRepository {
         copyPreview,
         assetMode: p.asset_mode,
         copyLengthMode,
+        offerDependent: p.offer_gate === 'free_pilot_active' || hasOfferLanguage(`${p.copy_text} ${p.first_comment_text ?? ''}`),
         hasDestinationUrl: Boolean(p.destination_url && p.destination_url.length > 0),
         destinationUrl: p.destination_url ?? null,
         publishedAt: p.published_at ?? null,
         platformPostUrl: p.platform_post_url ?? null,
+        offerPhase: plan?.offerPhase ?? null,
         archetype: plan?.archetype ?? null,
         topic: plan?.topic ?? null,
         visualConcept: asset?.concept ?? null,

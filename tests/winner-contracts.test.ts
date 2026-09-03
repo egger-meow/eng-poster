@@ -10,8 +10,8 @@ describe('Authoritative Winner Analysis & Anti-Copy Contract Tests', () => {
 
   it('mandates winner inspection and analysis phase in master scheduler prompt', () => {
     expect(prompt).toContain('Winner Posts as Behavioral Evidence & Learning Source');
-    expect(prompt).toContain('Step 4: Load Manually Marked Winner Posts');
-    expect(prompt).toContain('Step 5: Mandatory WINNER ANALYSIS Phase & Deriving Winning Signals');
+    expect(prompt).toContain('Step 6: Load Manually Marked Winner Posts');
+    expect(prompt).toContain('Step 7: Mandatory WINNER ANALYSIS Phase & Deriving Winning Signals');
     expect(prompt).toContain('pnpm social winners-list');
   });
 

@@ -135,3 +135,16 @@ The planner deterministically selects whichever mode is currently underrepresent
 ## What automated verification cannot prove
 
 The codebase can verify lint, types, unit/integration contracts, build output, and migration structure without secrets. Production readiness additionally requires a real Supabase migration application, valid credential-health responses, at least one usable Instagram/fallback asset, a credentialed researched plan, and explicit live smoke posts on all three platforms. Do not report those conditions as complete until a human supplies credentials and runs them.
+
+## Dynamic offer state
+
+**FREE PILOT IS A DYNAMIC OFFER, NOT A PERMANENT PRODUCT FACT.** Current truth must always come from `pnpm social offer-state` before authoring. Public canonical wording: 「100 位學員以前，每週專屬教材免費。」 See [docs/OFFER_CONTRACT.md](docs/OFFER_CONTRACT.md) for the authoritative phase model, claim rules, Buffer cancellation capability and residual timing risk.
+
+```bash
+pnpm social offer-state
+pnpm social offer-sensitive-queue
+```
+
+`offerPhase` is `free_pilot | standard_paid`. Persist live plan provenance and per-post `offerGate: null | free_pilot_active`; enqueue and dispatch revalidate, and provider reconciliation checks future offer posts for official deletion when invalid. The inspection command is read-only and does not rewrite existing posts. Historical winner offers do not authorize current claims.
+
+Apply `supabase/migrations/20260903064118_marketing_offer_gate.sql` before using the new durable gate/cancellation path. Update any saved external scheduler prompt. No new secret is required; existing Supabase settings must target production `ykzszjrqynrhgdhoeovo`.

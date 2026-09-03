@@ -8,6 +8,9 @@ import { MarketingRepository } from '../db/repository.js';
 import { selectAsset } from '../media/select.js';
 import { idempotencyKey, newId, sha256 } from '../shared/hash.js';
 import type { AssetMode, Claim, CopyLengthMode, Platform, PreparedPost, ResearchSnapshot } from '../types.js';
+import { readOfferState, offerStateSchema, offerPhases, type OfferStateReader } from '../offer/state.js';
+import { validateWinningSignals } from '../offer/winners.js';
+import { validateOfferCopy } from '../offer/claims.js';
 import { classifyCopyLengthMode } from '../content/ranges.js';
 
 const claimSchema = z.object({
@@ -17,6 +20,7 @@ const claimSchema = z.object({
 });
 
 export const enqueuePostSchema = z.object({
+  offerGate: z.enum(['free_pilot_active']).nullable().default(null),
   platform: z.enum(['facebook', 'instagram', 'threads']),
   assetMode: z.enum(['text_only', 'image_post', 'link_preview']).optional(),
   asset_mode: z.enum(['text_only', 'image_post', 'link_preview']).optional(),
@@ -59,12 +63,18 @@ export const enqueuePlanSchema = z.object({
   posts: z.array(enqueuePostSchema).min(1, 'At least one post must be provided'),
   provenance: z
     .object({
+      offerPhase: z.enum(offerPhases).optional(),
+      offerSnapshot: offerStateSchema.optional(),
       schedulerPromptVersion: z.string().optional(),
       generationTimestamp: z.string().default(() => new Date().toISOString()),
       sourceUrls: z.array(z.string().url()).optional(),
       contentHash: z.string().optional(),
       winnerReferenceCount: z.number().int().nonnegative().optional(),
       winningSignalsUsed: z.array(z.string()).optional(),
+      winningSignals: z.array(z.object({
+        signal: z.string(), evidencePostIds: z.array(z.string()), confidence: z.enum(['high', 'medium', 'low']),
+        sourceOfferPhase: z.enum(offerPhases).nullable(), offerDependent: z.boolean(), notes: z.string().optional(),
+      })).optional(),
       explorationMode: z.enum(['winner_informed', 'exploratory']).optional(),
     })
     .passthrough()
@@ -84,7 +94,8 @@ export interface EnqueueResult {
 
 export async function enqueuePlan(
   rawInput: unknown,
-  repo = new MarketingRepository()
+  repo = new MarketingRepository(),
+  getOffer: OfferStateReader = readOfferState,
 ): Promise<EnqueueResult> {
   const parsed = enqueuePlanSchema.safeParse(rawInput);
   if (!parsed.success) {
@@ -93,6 +104,16 @@ export async function enqueuePlan(
 
 
   const input = parsed.data;
+  const offer = await getOffer();
+  if (input.provenance.offerPhase && input.provenance.offerPhase !== offer.offerPhase) {
+    throw new Error('Authoring offer phase expired; refresh offer-state and re-author');
+  }
+  const signalErrors = validateWinningSignals([...(input.provenance.winningSignalsUsed ?? []), ...(input.provenance.winningSignals ?? [])], offer);
+  if (signalErrors.length) throw new Error(signalErrors.join('; '));
+  for (const post of input.posts) {
+    const errors = validateOfferCopy(post, offer);
+    if (errors.length) throw new Error(errors.join('; '));
+  }
   const config = await loadConfig();
   const occupied = new Set<string>();
 
@@ -116,7 +137,7 @@ export async function enqueuePlan(
   const usedAssetIdsThisRun = new Set<string>();
 
   // 2. Find or create content plan row
-  let planId = await repo.findPlan(input.planDate, input.archetype);
+  let planId = await repo.findPlan(input.planDate, input.archetype, offer.offerPhase);
   if (!planId) {
     planId = await repo.createPlan({
       planDate: input.planDate,
@@ -128,6 +149,8 @@ export async function enqueuePlan(
       provenance: {
         source: input.source,
         ...input.provenance,
+        offerPhase: offer.offerPhase,
+        offerSnapshot: offer,
         configVersion: config.version,
         enqueuedAt: new Date().toISOString(),
       },
@@ -178,7 +201,9 @@ export async function enqueuePlan(
       continue;
     }
 
-    const slotNumber = existingDayPosts.length + 1;
+    const occupiedSlots = new Set(existingDayPosts.map((p) => Number(p.idempotency_key.split(':').at(-1))));
+    let slotNumber = 1;
+    while (occupiedSlots.has(slotNumber)) slotNumber++;
     const postKey = idempotencyKey(input.planDate, platform, String(slotNumber));
 
     // Resolve asset mode
@@ -251,6 +276,7 @@ export async function enqueuePlan(
       platform,
       assetMode,
       copyLengthMode,
+      offerGate: postInput.offerGate,
       copyText: postInput.copyText,
       destinationUrl,
       mediaUrl,
@@ -269,6 +295,10 @@ export async function enqueuePlan(
       throw new Error(`Post validation failed for ${platform} (${assetMode}): ${postValidation.errors.join('; ')}`);
     }
 
+    if (preparedPost.offerGate) {
+      const freshErrors = validateOfferCopy(preparedPost, await getOffer());
+      if (freshErrors.length) throw new Error(freshErrors.join('; '));
+    }
     await repo.schedule(preparedPost, sha256(preparedPost.copyText));
     scheduledCounts[platform]++;
     enqueued++;

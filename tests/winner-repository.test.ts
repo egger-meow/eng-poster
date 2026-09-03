@@ -361,12 +361,13 @@ describe('MarketingRepository - Winner Feedback API', () => {
           },
         ],
         plans: [
-          { id: 'plan-1', archetype: 'pain_point', topic: 'A++挑戰' },
+          { id: 'plan-1', archetype: 'pain_point', topic: 'A++挑戰', provenance: { offerPhase: 'free_pilot' } },
         ],
       });
 
       const repo = new MarketingRepository(db);
       const winners = await repo.getWinnerPosts();
+      if (winners.length) expect(winners[0]?.offerPhase).toBe('free_pilot');
 
       expect(winners.length).toBe(1);
       const w = winners[0]!;

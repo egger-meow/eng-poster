@@ -32,7 +32,7 @@ describe('knowledge and examples directory structure & prompt integration', () =
     expect(promptContent).toContain('knowledge/examples/**');
     expect(promptContent).toMatch(/knowledge\/examples\/\*\.md/);
     expect(promptContent).toContain('Mandatory Knowledge & Reference Reading');
-    expect(promptContent).toContain('Step 1: Read All Knowledge & Reference Examples');
+    expect(promptContent).toContain('Step 2: Read All Knowledge & Reference Examples');
   });
 
   it('verifies that scheduler setup docs include knowledge/examples/** attachment instructions', () => {

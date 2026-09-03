@@ -2,6 +2,9 @@
 import { readFile } from 'node:fs/promises';
 import { Command } from 'commander';
 
+import { readOfferState, validOfferClaims, offerStrategy } from './offer/state.js';
+import { inspectOfferSensitiveQueue } from './offer/queue.js';
+import { winnerOfferContext } from './offer/winners.js';
 import { platforms, type Platform } from './types.js';
 import { enqueuePlan } from './orchestration/enqueue-plan.js';
 import { checkQueueHealth } from './orchestration/queue-health.js';
@@ -15,6 +18,14 @@ import { env } from './env.js';
 import { MarketingRepository } from './db/repository.js';
 
 const program = new Command().name('social').description('Paper English organic social engine');
+
+program.command('offer-state').description('Read canonical production enrollment offer state').action(async () => {
+  const state = await readOfferState();
+  console.log(JSON.stringify({ ...state, validOfferClaims: validOfferClaims(state), strategy: offerStrategy(state) }, null, 2));
+});
+program.command('offer-sensitive-queue').description('Read-only inspection of offer-sensitive queue rows').action(async () => {
+  console.log(JSON.stringify(await inspectOfferSensitiveQueue(), null, 2));
+});
 
 program
   .command('next-queue-gap')
@@ -145,7 +156,8 @@ program
       platform: o.platform as Platform | undefined,
       limit: o.limit ? Number(o.limit) : undefined,
     });
-    console.log(JSON.stringify({ count: winners.length, winners }, null, 2));
+    const currentOffer = await readOfferState();
+    console.log(JSON.stringify({ currentOffer, count: winners.length, winners: winners.map((winner) => winnerOfferContext(winner, currentOffer)) }, null, 2));
   });
 
 await program.parseAsync();
