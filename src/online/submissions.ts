@@ -17,8 +17,14 @@ export interface OnlineSubmissionRow {
   result?: Record<string, unknown> | null;
 }
 
+export interface CandidateContentIdentity {
+  platform: Platform;
+  contentHash: string;
+}
+
 export interface VerifiedQueuedPost {
   id: string;
+  contentPlanId: string;
   platform: Platform;
   scheduledFor: string;
   status: PostStatus;
@@ -34,6 +40,7 @@ export interface OnlineSubmissionStore {
   reject(id: string, code: string, message: string, result?: Record<string, unknown>): Promise<void>;
   technicalFailure(id: string, code: string, message: string, retryable: boolean): Promise<void>;
   verifyPlanPosts(planId: string): Promise<VerifiedQueuedPost[]>;
+  findCandidatePosts(targetDate: string, candidates: CandidateContentIdentity[]): Promise<VerifiedQueuedPost[]>;
   list(limit?: number): Promise<OnlineSubmissionRow[]>;
   get(id: string): Promise<OnlineSubmissionRow | null>;
 }
@@ -58,6 +65,22 @@ function mapRow(row: any): OnlineSubmissionRow {
     result: row.result ?? null,
   };
 }
+
+function mapVerifiedPost(row: any): VerifiedQueuedPost {
+  return {
+    id: row.id,
+    contentPlanId: row.content_plan_id,
+    platform: row.platform,
+    scheduledFor: row.scheduled_for,
+    status: row.status,
+    idempotencyKey: row.idempotency_key,
+    contentHash: row.content_hash,
+    offerGate: row.offer_gate ?? null,
+    mediaAssetId: row.media_asset_id ?? null,
+  };
+}
+
+const verificationColumns = 'id, content_plan_id, platform, scheduled_for, status, idempotency_key, content_hash, offer_gate, media_asset_id';
 
 export class OnlineSubmissionRepository implements OnlineSubmissionStore {
   constructor(private readonly db = getSupabase()) {}
@@ -121,8 +144,7 @@ export class OnlineSubmissionRepository implements OnlineSubmissionStore {
         claimed_by: null,
         lease_token: null,
         lease_expires_at: null,
-        claimed_at: retryable ? null : undefined,
-        finished_at: retryable ? null : now,
+        ...(retryable ? { claimed_at: null, finished_at: null } : { finished_at: now }),
         updated_at: now,
       })
       .eq('id', id)
@@ -133,22 +155,29 @@ export class OnlineSubmissionRepository implements OnlineSubmissionStore {
   async verifyPlanPosts(planId: string): Promise<VerifiedQueuedPost[]> {
     const { data, error } = await this.db
       .from('marketing_posts')
-      .select('id, platform, scheduled_for, status, idempotency_key, content_hash, offer_gate, media_asset_id')
+      .select(verificationColumns)
       .eq('content_plan_id', planId)
       .in('status', queueOccupyingPostStatuses)
       .order('scheduled_for', { ascending: true })
       .order('id', { ascending: true });
-    const rows = checked(data, error) ?? [];
-    return rows.map((row: any) => ({
-      id: row.id,
-      platform: row.platform,
-      scheduledFor: row.scheduled_for,
-      status: row.status,
-      idempotencyKey: row.idempotency_key,
-      contentHash: row.content_hash,
-      offerGate: row.offer_gate ?? null,
-      mediaAssetId: row.media_asset_id ?? null,
-    }));
+    return (checked(data, error) ?? []).map(mapVerifiedPost);
+  }
+
+  async findCandidatePosts(targetDate: string, candidates: CandidateContentIdentity[]): Promise<VerifiedQueuedPost[]> {
+    if (candidates.length === 0) return [];
+    const hashes = Array.from(new Set(candidates.map((candidate) => candidate.contentHash)));
+    const candidateKeys = new Set(candidates.map((candidate) => `${candidate.platform}:${candidate.contentHash}`));
+    const { data, error } = await this.db
+      .from('marketing_posts')
+      .select(verificationColumns)
+      .like('idempotency_key', `${targetDate}:%`)
+      .in('status', queueOccupyingPostStatuses)
+      .in('content_hash', hashes)
+      .order('scheduled_for', { ascending: true })
+      .order('id', { ascending: true });
+    return (checked(data, error) ?? [])
+      .map(mapVerifiedPost)
+      .filter((post) => candidateKeys.has(`${post.platform}:${post.contentHash}`));
   }
 
   async list(limit = 50): Promise<OnlineSubmissionRow[]> {
