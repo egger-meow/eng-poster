@@ -37,7 +37,7 @@ describe('online authoring bridge migration', () => {
     const sql = (await readFile(path, 'utf8')).toLowerCase();
     expect(sql).toContain("jsonb_typeof(p_payload) <> 'object'");
     expect(sql).toContain('octet_length(p_payload::text)');
-    expect(sql).toContain("p_expected_git_sha !~ '^[0-9a-f]{40}$'");
+    expect(sql).toContain("lower(p_expected_git_sha) !~ '^[0-9a-f]{40}$'");
     expect(sql).toContain('submission_key');
     expect(sql).toContain('md5(');
     expect(sql).toContain('on conflict (submission_key) do nothing');
