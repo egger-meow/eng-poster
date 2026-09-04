@@ -23,6 +23,7 @@ export interface VerifiedQueuedPost {
   scheduledFor: string;
   status: PostStatus;
   idempotencyKey: string;
+  contentHash: string;
   offerGate: 'free_pilot_active' | null;
   mediaAssetId: string | null;
 }
@@ -78,6 +79,7 @@ export class OnlineSubmissionRepository implements OnlineSubmissionStore {
         result,
         error_code: null,
         error_message: null,
+        claimed_by: null,
         lease_token: null,
         lease_expires_at: null,
         finished_at: new Date().toISOString(),
@@ -97,6 +99,7 @@ export class OnlineSubmissionRepository implements OnlineSubmissionStore {
         result,
         error_code: code,
         error_message: message.slice(0, 2000),
+        claimed_by: null,
         lease_token: null,
         lease_expires_at: null,
         finished_at: now,
@@ -115,8 +118,10 @@ export class OnlineSubmissionRepository implements OnlineSubmissionStore {
         status: retryable ? 'pending' : 'failed',
         error_code: code,
         error_message: message.slice(0, 2000),
+        claimed_by: null,
         lease_token: null,
         lease_expires_at: null,
+        claimed_at: retryable ? null : undefined,
         finished_at: retryable ? null : now,
         updated_at: now,
       })
@@ -128,7 +133,7 @@ export class OnlineSubmissionRepository implements OnlineSubmissionStore {
   async verifyPlanPosts(planId: string): Promise<VerifiedQueuedPost[]> {
     const { data, error } = await this.db
       .from('marketing_posts')
-      .select('id, platform, scheduled_for, status, idempotency_key, offer_gate, media_asset_id')
+      .select('id, platform, scheduled_for, status, idempotency_key, content_hash, offer_gate, media_asset_id')
       .eq('content_plan_id', planId)
       .in('status', queueOccupyingPostStatuses)
       .order('scheduled_for', { ascending: true })
@@ -140,6 +145,7 @@ export class OnlineSubmissionRepository implements OnlineSubmissionStore {
       scheduledFor: row.scheduled_for,
       status: row.status,
       idempotencyKey: row.idempotency_key,
+      contentHash: row.content_hash,
       offerGate: row.offer_gate ?? null,
       mediaAssetId: row.media_asset_id ?? null,
     }));
