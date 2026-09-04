@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { processOnlineSubmissions } from '../src/orchestration/process-online-submissions.js';
-import type { OnlineSubmissionRow, OnlineSubmissionStore } from '../src/online/submissions.js';
+import type {
+  OnlineSubmissionRow,
+  OnlineSubmissionStore,
+  VerifiedQueuedPost,
+} from '../src/online/submissions.js';
 
 const SHA = '0002943a0172500b4f5c778f23285e858da0dcd1';
 
@@ -34,23 +38,23 @@ function row(overrides: Partial<OnlineSubmissionRow> = {}): OnlineSubmissionRow 
   };
 }
 
+const verifiedPost: VerifiedQueuedPost = {
+  id: '22222222-2222-4222-8222-222222222222',
+  platform: 'threads',
+  scheduledFor: '2026-09-05T12:00:00.000Z',
+  status: 'scheduled',
+  idempotencyKey: '2026-09-05:threads:1',
+  offerGate: null,
+  mediaAssetId: null,
+};
+
 function storeFixture(rows: OnlineSubmissionRow[] = [row()]) {
   const store: OnlineSubmissionStore = {
     claim: vi.fn(async () => rows),
     accept: vi.fn(async () => undefined),
     reject: vi.fn(async () => undefined),
     technicalFailure: vi.fn(async () => undefined),
-    verifyPlanPosts: vi.fn(async () => [
-      {
-        id: '22222222-2222-4222-8222-222222222222',
-        platform: 'threads',
-        scheduledFor: '2026-09-05T12:00:00.000Z',
-        status: 'scheduled',
-        idempotencyKey: '2026-09-05:threads:1',
-        offerGate: null,
-        mediaAssetId: null,
-      },
-    ]),
+    verifyPlanPosts: vi.fn(async () => [verifiedPost]),
     list: vi.fn(async () => []),
     get: vi.fn(async () => null),
   };
