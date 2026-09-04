@@ -31,7 +31,7 @@ if (/enrollment_settings|historical_pilot_admissions|free_pilot_ended_at/i.test(
 }
 console.log('Offer gate and cancellation migration contract verified.');
 
-const onlineSql = await readFile('supabase/migrations/20260904070000_online_authoring_bridge.sql', 'utf8');
+const onlineSql = await readFile('supabase/migrations/20260904062759_online_authoring_bridge.sql', 'utf8');
 for (const required of [
   'create table public.marketing_authoring_submissions',
   'chatgpt_submit_marketing_plan',
