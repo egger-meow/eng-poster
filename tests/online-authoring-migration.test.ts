@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
-const path = 'supabase/migrations/20260904070000_online_authoring_bridge.sql';
+const path = 'supabase/migrations/20260904062759_online_authoring_bridge.sql';
 
 describe('online authoring bridge migration', () => {
   it('creates a service-role-only staging queue and explicit RPC surface', async () => {
