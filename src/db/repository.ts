@@ -10,6 +10,7 @@ import type {
   TokenHealth,
   WinnerPostContext,
 } from '../types.js';
+import { queueOccupyingPostStatuses } from '../types.js';
 import { classifyCopyLengthMode } from '../content/ranges.js';
 import type { OfferPhase } from '../offer/state.js';
 import { hasOfferLanguage } from '../offer/claims.js';
@@ -101,6 +102,13 @@ export class MarketingRepository {
       return;
     }
     checked(true, error);
+  }
+
+  async releasePermanentlyFailedSlot(idempotencyKey: string): Promise<boolean> {
+    const { data, error } = await this.db.rpc('release_permanently_failed_marketing_slot', {
+      p_idempotency_key: idempotencyKey,
+    });
+    return checked(data, error) === true;
   }
 
   async claimDue(
@@ -556,7 +564,7 @@ export class MarketingRepository {
       .from('marketing_posts')
       .select('id', { count: 'exact', head: true })
       .eq('platform', platform)
-      .neq('status', 'cancelled')
+      .in('status', queueOccupyingPostStatuses)
       .gte('scheduled_for', startIso)
       .lte('scheduled_for', endIso);
     checked(true, error);
@@ -571,7 +579,7 @@ export class MarketingRepository {
       .from('marketing_posts')
       .select('id, idempotency_key, status')
       .eq('platform', platform)
-      .neq('status', 'cancelled')
+      .in('status', queueOccupyingPostStatuses)
       .like('idempotency_key', `${date}:${platform}:%`);
     return checked(data, error) ?? [];
   }

@@ -2,7 +2,7 @@ import { DateTime } from 'luxon';
 import { loadConfig, type AppConfig } from '../config.js';
 import { MarketingRepository } from '../db/repository.js';
 import { selectCopyLengthMode } from '../content/selection.js';
-import type { CopyLengthMode, Platform } from '../types.js';
+import { isQueueOccupyingStatus, type CopyLengthMode, type Platform } from '../types.js';
 
 export interface MissingSlot {
   platform: Platform;
@@ -73,7 +73,8 @@ export async function findNextQueueGap(
       const currentWeekCount = await repo.countPostsForDateRange(platform, startOfWeek, endOfWeek);
 
       // Existing posts for this platform on candidate date
-      const existingDayPosts = await repo.getExistingPostsForDate(dateStr, platform);
+      const existingDayPosts = (await repo.getExistingPostsForDate(dateStr, platform))
+        .filter((post) => isQueueOccupyingStatus(post.status));
 
       // Identify occupied slots from idempotency keys or counts
       const occupiedSlots = new Set<number>();

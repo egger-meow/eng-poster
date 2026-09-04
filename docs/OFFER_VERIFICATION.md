@@ -53,7 +53,7 @@ No live Buffer call, publication, production queue rewrite, enrollment modificat
 
 ## Migration and remaining operator steps
 
-New migration: `supabase/migrations/20260903064118_marketing_offer_gate.sql`. Adds `offer_gate`, `first_comment_text`, `cta_mode`, and service-role-only `cancel_marketing_offer_post` RPC. The migration was **not applied to production**. Apply it before relying on gate persistence/cancellation, then refresh any externally saved scheduler prompt. Existing Supabase credentials suffice; no new secret is needed.
+New migration: `supabase/migrations/20260903064118_marketing_offer_gate.sql`. Adds `offer_gate`, `first_comment_text`, `cta_mode`, and service-role-only `cancel_marketing_offer_post` RPC. The migration was applied to production project `ykzszjrqynrhgdhoeovo` on 2026-09-04. Refresh any externally saved scheduler prompt before the next authoring run. Existing Supabase credentials suffice; no new secret is needed.
 
 Official API sources and full architecture are in [OFFER_CONTRACT.md](OFFER_CONTRACT.md). A 30-minute polling interval, cron delays, outages and the delete/publish race leave a residual timing window: separate product and Buffer systems cannot provide an atomic offer check at publication. Manual provider review is required for unresolved incidents. No claim of a zero-race cancellation guarantee is made.
 

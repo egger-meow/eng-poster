@@ -207,3 +207,27 @@ describe('next-queue-gap calculation', () => {
     expect(result.message).toContain('Queue fully stocked');
   });
 });
+
+describe('terminal queue status handling', () => {
+  it('treats permanently_failed and cancelled rows as vacant slots', async () => {
+    const mockRepo = {
+      countPostsForDateRange: async () => 0,
+      getExistingPostsForDate: async (_date: string, platform: Platform) => platform === 'threads' ? [
+        { id: 'failed', idempotency_key: '2026-09-02:threads:1', status: 'permanently_failed' },
+        { id: 'cancelled', idempotency_key: '2026-09-02:threads:2', status: 'cancelled' },
+      ] : [],
+    } as unknown as MarketingRepository;
+
+    const result = await findNextQueueGap(
+      { startFrom: '2026-09-02T08:00:00+08:00' },
+      mockRepo,
+      testConfig
+    );
+
+    expect(result.missing).toEqual([
+      { platform: 'threads', slot: 1 },
+      { platform: 'threads', slot: 2 },
+      { platform: 'instagram', slot: 1 },
+    ]);
+  });
+});

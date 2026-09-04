@@ -7,7 +7,7 @@ import { validatePreparedPost } from '../content/gates.js';
 import { MarketingRepository } from '../db/repository.js';
 import { selectAsset } from '../media/select.js';
 import { idempotencyKey, newId, sha256 } from '../shared/hash.js';
-import type { AssetMode, Claim, CopyLengthMode, Platform, PreparedPost, ResearchSnapshot } from '../types.js';
+import { isQueueOccupyingStatus, type AssetMode, type Claim, type CopyLengthMode, type Platform, type PreparedPost, type ResearchSnapshot } from '../types.js';
 import { readOfferState, offerStateSchema, offerPhases, type OfferStateReader } from '../offer/state.js';
 import { validateWinningSignals } from '../offer/winners.js';
 import { validateOfferCopy } from '../offer/claims.js';
@@ -182,7 +182,8 @@ export async function enqueuePlan(
     }
 
     // Gate C: Caps enforcement
-    const existingDayPosts = await repo.getExistingPostsForDate(input.planDate, platform);
+    const existingDayPosts = (await repo.getExistingPostsForDate(input.planDate, platform))
+      .filter((post) => isQueueOccupyingStatus(post.status));
     scheduledCounts[platform] = existingDayPosts.length;
 
     const weekCount = await repo.countPostsForDateRange(platform, startOfWeek, endOfWeek);
@@ -298,6 +299,9 @@ export async function enqueuePlan(
     if (preparedPost.offerGate) {
       const freshErrors = validateOfferCopy(preparedPost, await getOffer());
       if (freshErrors.length) throw new Error(freshErrors.join('; '));
+    }
+    if (typeof repo.releasePermanentlyFailedSlot === 'function') {
+      await repo.releasePermanentlyFailedSlot(postKey);
     }
     await repo.schedule(preparedPost, sha256(preparedPost.copyText));
     scheduledCounts[platform]++;

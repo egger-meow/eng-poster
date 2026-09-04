@@ -15,6 +15,7 @@ function repoFixture() {
     createPlan: vi.fn(async () => 'plan-id'),
     getExistingPostsForDate: vi.fn(async (_date: string, platform: string) => posts.filter(p => p.platform === platform).map(p => ({ id: p.id, idempotency_key: p.idempotencyKey, status: 'scheduled' }))),
     countPostsForDateRange: vi.fn(async (platform: string) => posts.filter(p => p.platform === platform).length),
+    releasePermanentlyFailedSlot: vi.fn(async () => false),
     schedule: vi.fn(async (post: PreparedPost) => { posts.push(post); }),
   };
   return { repo, posts, asRepo: repo as unknown as MarketingRepository };

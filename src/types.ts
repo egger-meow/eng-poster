@@ -18,6 +18,15 @@ export const postStatuses = [
   'cancelled',
 ] as const;
 export type PostStatus = (typeof postStatuses)[number];
+export const queueOccupyingPostStatuses: PostStatus[] = [
+  'scheduled',
+  'claimed',
+  'retryable_failed',
+  'provider_scheduled',
+  'published',
+];
+export const isQueueOccupyingStatus = (status: string | undefined): boolean =>
+  status !== 'cancelled' && status !== 'permanently_failed';
 export type AssetSource = 'manual' | 'screenshot' | 'template' | 'ai_generated' | 'fallback';
 
 export interface SourceRecord { url: string; title: string; retrievedAt: string; notes: string[] }
