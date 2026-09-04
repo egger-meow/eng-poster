@@ -68,7 +68,10 @@ begin
   end if;
 
   -- jsonb::text has deterministic key ordering in PostgreSQL, making this stable for identical payloads.
-  v_key := md5(lower(p_expected_git_sha) || ':' || p_payload::text);
+  v_key := encode(
+    extensions.digest(convert_to(lower(p_expected_git_sha) || ':' || p_payload::text, 'UTF8'), 'sha256'),
+    'hex'
+  );
 
   insert into public.marketing_authoring_submissions (
     submission_key,
