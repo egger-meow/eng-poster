@@ -1,8 +1,11 @@
 import { execFileSync } from 'node:child_process';
 import { enqueuePlan, enqueuePlanSchema, type EnqueueResult } from './enqueue-plan.js';
+import { sha256 } from '../shared/hash.js';
 import {
   OnlineSubmissionRepository,
+  type CandidateContentIdentity,
   type OnlineSubmissionStore,
+  type VerifiedQueuedPost,
 } from '../online/submissions.js';
 
 export interface ProcessOnlineSubmissionsResult {
@@ -39,6 +42,45 @@ function resolveGitSha(): string {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function candidateIdentities(posts: Array<{ platform: CandidateContentIdentity['platform']; copyText: string }>): CandidateContentIdentity[] {
+  return posts.map((post) => ({ platform: post.platform, contentHash: sha256(post.copyText) }));
+}
+
+function matchingCandidatePosts(
+  expected: CandidateContentIdentity[],
+  actual: VerifiedQueuedPost[]
+): VerifiedQueuedPost[] {
+  const remaining = [...actual];
+  const matches: VerifiedQueuedPost[] = [];
+  for (const candidate of expected) {
+    const index = remaining.findIndex(
+      (post) => post.platform === candidate.platform && post.contentHash === candidate.contentHash
+    );
+    if (index < 0) continue;
+    matches.push(remaining[index]!);
+    remaining.splice(index, 1);
+  }
+  return matches;
+}
+
+function acceptedResult(
+  targetDate: string,
+  matches: VerifiedQueuedPost[],
+  enqueueResult?: EnqueueResult,
+  recovered = false
+): Record<string, unknown> {
+  const planIds = Array.from(new Set(matches.map((post) => post.contentPlanId)));
+  return {
+    targetDate,
+    planId: planIds.length === 1 ? planIds[0] : enqueueResult?.planId ?? null,
+    postIds: matches.map((post) => post.id),
+    postCount: matches.length,
+    platforms: matches.map((post) => post.platform),
+    recovered,
+    ...(enqueueResult ? { enqueueResult } : {}),
+  };
 }
 
 export function classifyOnlineAuthoringError(message: string): { code: string; deterministic: boolean } {
@@ -107,8 +149,43 @@ export async function processOnlineSubmissions(
       continue;
     }
 
+    const expected = candidateIdentities(parsed.data.posts);
+
     try {
+      // A lease recovery can happen after enqueue writes but before the submission was marked accepted.
+      // Recover exact platform+content-hash matches first so a retry never creates a duplicate post.
+      if (row.attemptCount > 1) {
+        const existing = await store.findCandidatePosts(parsed.data.planDate, expected);
+        const matches = matchingCandidatePosts(expected, existing);
+        if (matches.length === expected.length) {
+          await store.accept(row.id, acceptedResult(parsed.data.planDate, matches, undefined, true));
+          summary.accepted++;
+          continue;
+        }
+        if (matches.length > 0) {
+          await store.reject(
+            row.id,
+            'AMBIGUOUS_PARTIAL_ENQUEUE',
+            `Recovered ${matches.length}/${expected.length} exact candidate posts; refusing automatic retry to avoid duplicate queue writes`,
+            acceptedResult(parsed.data.planDate, matches, undefined, true)
+          );
+          summary.rejected++;
+          continue;
+        }
+      }
+
       const result = await enqueue(parsed.data);
+      const verifiedPosts = await store.verifyPlanPosts(result.planId);
+      const matches = matchingCandidatePosts(expected, verifiedPosts);
+
+      if (matches.length === expected.length) {
+        await store.accept(
+          row.id,
+          acceptedResult(parsed.data.planDate, matches, result, result.enqueued === 0)
+        );
+        summary.accepted++;
+        continue;
+      }
 
       if (result.enqueued === 0 && result.skipped > 0) {
         await store.reject(
@@ -121,25 +198,11 @@ export async function processOnlineSubmissions(
         continue;
       }
 
-      const verifiedPosts = await store.verifyPlanPosts(result.planId);
-      if (verifiedPosts.length < result.enqueued) {
-        const message = `Read-after-write found ${verifiedPosts.length} queue rows for ${result.enqueued} newly enqueued posts`;
-        const retryable = row.attemptCount < maxAttempts;
-        await store.technicalFailure(row.id, 'READ_AFTER_WRITE_FAILED', message, retryable);
-        if (retryable) summary.retried++;
-        else summary.failed++;
-        continue;
-      }
-
-      await store.accept(row.id, {
-        targetDate: parsed.data.planDate,
-        planId: result.planId,
-        postIds: verifiedPosts.map((post) => post.id),
-        postCount: verifiedPosts.length,
-        platforms: verifiedPosts.map((post) => post.platform),
-        enqueueResult: result,
-      });
-      summary.accepted++;
+      const message = `Read-after-write matched ${matches.length}/${expected.length} exact candidate posts`;
+      // Once enqueue has started, an ambiguous technical retry could duplicate a partially-written plan.
+      // Fail closed. Lease retries are safe only when the exact candidate can be recovered above.
+      await store.technicalFailure(row.id, 'READ_AFTER_WRITE_FAILED', message, false);
+      summary.failed++;
     } catch (error) {
       const message = errorMessage(error);
       const classification = classifyOnlineAuthoringError(message);
@@ -149,9 +212,12 @@ export async function processOnlineSubmissions(
         continue;
       }
 
-      const retryable = row.attemptCount < maxAttempts;
+      // Unknown failures from inside enqueue are potentially ambiguous because enqueuePlan performs real writes.
+      // Do not blindly retry them. A worker crash before enqueue is naturally recovered by the lease; a crash
+      // after writes is recovered on the next claim by the exact content-hash lookup above.
+      const retryable = false;
       await store.technicalFailure(row.id, classification.code, message, retryable);
-      if (retryable) summary.retried++;
+      if (retryable && row.attemptCount < maxAttempts) summary.retried++;
       else summary.failed++;
     }
   }
