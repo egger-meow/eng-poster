@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { processOnlineSubmissions } from '../src/orchestration/process-online-submissions.js';
+import { sha256 } from '../src/shared/hash.js';
 import type {
   OnlineSubmissionRow,
   OnlineSubmissionStore,
@@ -7,6 +8,7 @@ import type {
 } from '../src/online/submissions.js';
 
 const SHA = '0002943a0172500b4f5c778f23285e858da0dcd1';
+const COPY = '孩子看到英文長文就直接放空。💀';
 
 function payload() {
   return {
@@ -17,7 +19,7 @@ function payload() {
       {
         platform: 'threads',
         assetMode: 'text_only',
-        copyText: '孩子看到英文長文就直接放空。💀',
+        copyText: COPY,
         claimManifest: [],
       },
     ],
@@ -40,10 +42,12 @@ function row(overrides: Partial<OnlineSubmissionRow> = {}): OnlineSubmissionRow 
 
 const verifiedPost: VerifiedQueuedPost = {
   id: '22222222-2222-4222-8222-222222222222',
+  contentPlanId: 'plan-id',
   platform: 'threads',
   scheduledFor: '2026-09-05T12:00:00.000Z',
   status: 'scheduled',
   idempotencyKey: '2026-09-05:threads:1',
+  contentHash: sha256(COPY),
   offerGate: null,
   mediaAssetId: null,
 };
@@ -55,6 +59,7 @@ function storeFixture(rows: OnlineSubmissionRow[] = [row()]) {
     reject: vi.fn(async () => undefined),
     technicalFailure: vi.fn(async () => undefined),
     verifyPlanPosts: vi.fn(async () => [verifiedPost]),
+    findCandidatePosts: vi.fn(async () => []),
     list: vi.fn(async () => []),
     get: vi.fn(async () => null),
   };
@@ -71,7 +76,7 @@ describe('processOnlineSubmissions', () => {
     expect(store.reject).toHaveBeenCalledWith(expect.any(String), 'STALE_GIT_SHA', expect.stringContaining(SHA), expect.any(Object));
   });
 
-  it('reuses the current enqueue path and accepts only after read-after-write verification', async () => {
+  it('reuses the current enqueue path and accepts only after exact read-after-write verification', async () => {
     const store = storeFixture();
     const enqueue = vi.fn(async () => ({ planId: 'plan-id', enqueued: 1, scheduled: { facebook: 0, instagram: 0, threads: 1 }, skipped: 0, errors: [] }));
     const result = await processOnlineSubmissions({ store, enqueue, gitSha: SHA });
@@ -97,31 +102,54 @@ describe('processOnlineSubmissions', () => {
     expect(store.technicalFailure).not.toHaveBeenCalled();
   });
 
-  it('releases technical failures for retry while attempts remain', async () => {
+  it('fails closed on unknown enqueue errors because the write outcome can be ambiguous', async () => {
     const store = storeFixture([row({ attemptCount: 1 })]);
     const enqueue = vi.fn(async () => { throw new Error('fetch failed'); });
-    await processOnlineSubmissions({ store, enqueue, gitSha: SHA, maxAttempts: 3 });
-    expect(store.technicalFailure).toHaveBeenCalledWith(expect.any(String), 'TECHNICAL_FAILURE', 'fetch failed', true);
-  });
-
-  it('marks technical failure final when retry budget is exhausted', async () => {
-    const store = storeFixture([row({ attemptCount: 3 })]);
-    const enqueue = vi.fn(async () => { throw new Error('fetch failed'); });
-    await processOnlineSubmissions({ store, enqueue, gitSha: SHA, maxAttempts: 3 });
+    const result = await processOnlineSubmissions({ store, enqueue, gitSha: SHA, maxAttempts: 3 });
     expect(store.technicalFailure).toHaveBeenCalledWith(expect.any(String), 'TECHNICAL_FAILURE', 'fetch failed', false);
+    expect(result).toMatchObject({ failed: 1, retried: 0 });
   });
 
-  it('does not accept when read-after-write verification cannot find expected posts', async () => {
+  it('does not accept when exact read-after-write verification cannot find the candidate', async () => {
     const store = storeFixture();
     store.verifyPlanPosts = vi.fn(async () => []);
     const enqueue = vi.fn(async () => ({ planId: 'plan-id', enqueued: 1, scheduled: { facebook: 0, instagram: 0, threads: 1 }, skipped: 0, errors: [] }));
-    await processOnlineSubmissions({ store, enqueue, gitSha: SHA });
+    const result = await processOnlineSubmissions({ store, enqueue, gitSha: SHA });
     expect(store.accept).not.toHaveBeenCalled();
-    expect(store.technicalFailure).toHaveBeenCalledWith(expect.any(String), 'READ_AFTER_WRITE_FAILED', expect.any(String), true);
+    expect(store.technicalFailure).toHaveBeenCalledWith(expect.any(String), 'READ_AFTER_WRITE_FAILED', expect.any(String), false);
+    expect(result.failed).toBe(1);
   });
 
-  it('classifies a zero-enqueue race as a deterministic queue rejection', async () => {
+  it('recovers a lease retry from exact existing candidate posts without enqueueing again', async () => {
+    const store = storeFixture([row({ attemptCount: 2 })]);
+    store.findCandidatePosts = vi.fn(async () => [verifiedPost]);
+    const enqueue = vi.fn();
+    const result = await processOnlineSubmissions({ store, enqueue, gitSha: SHA });
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(store.accept).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ recovered: true, postIds: [verifiedPost.id] }));
+    expect(result.accepted).toBe(1);
+  });
+
+  it('rejects partial retry recovery instead of risking duplicate writes', async () => {
+    const twoPostPayload = payload();
+    twoPostPayload.posts.push({
+      platform: 'facebook' as any,
+      assetMode: 'text_only',
+      copyText: '英文閱讀不是把每個字翻完。',
+      claimManifest: [],
+    } as any);
+    const store = storeFixture([row({ attemptCount: 2, payload: twoPostPayload })]);
+    store.findCandidatePosts = vi.fn(async () => [verifiedPost]);
+    const enqueue = vi.fn();
+    const result = await processOnlineSubmissions({ store, enqueue, gitSha: SHA });
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(store.reject).toHaveBeenCalledWith(expect.any(String), 'AMBIGUOUS_PARTIAL_ENQUEUE', expect.stringContaining('1/2'), expect.any(Object));
+    expect(result.rejected).toBe(1);
+  });
+
+  it('classifies a zero-enqueue race as a deterministic queue rejection when no exact candidate exists', async () => {
     const store = storeFixture();
+    store.verifyPlanPosts = vi.fn(async () => []);
     const enqueue = vi.fn(async () => ({ planId: 'plan-id', enqueued: 0, scheduled: { facebook: 0, instagram: 0, threads: 5 }, skipped: 1, errors: ['Daily cap reached for threads'] }));
     await processOnlineSubmissions({ store, enqueue, gitSha: SHA });
     expect(store.reject).toHaveBeenCalledWith(expect.any(String), 'QUEUE_SLOT_ALREADY_FILLED', expect.stringContaining('Daily cap reached'), expect.any(Object));
