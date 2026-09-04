@@ -10,12 +10,14 @@ import { enqueuePlan } from './orchestration/enqueue-plan.js';
 import { checkQueueHealth } from './orchestration/queue-health.js';
 import { findNextQueueGap } from './orchestration/next-queue-gap.js';
 import { dispatchDue } from './orchestration/dispatch-due.js';
+import { processOnlineSubmissions } from './orchestration/process-online-submissions.js';
 import { tokenHealth } from './orchestration/token-health.js';
 import { ingestAssets } from './media/ingest.js';
 import { dryRun } from './orchestration/dry-run.js';
 import { BufferClient, publisherFor } from './platforms/index.js';
 import { env } from './env.js';
 import { MarketingRepository } from './db/repository.js';
+import { OnlineSubmissionRepository } from './online/submissions.js';
 
 const program = new Command().name('social').description('Paper English organic social engine');
 
@@ -47,6 +49,39 @@ program
     }
     const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
     console.log(JSON.stringify(await enqueuePlan(data), null, 2));
+  });
+
+program
+  .command('process-online-submissions')
+  .description('Claim staged ChatGPT online candidates and process them through the canonical enqueue path')
+  .option('--limit <limit>', 'Maximum submissions to claim', '5')
+  .option('--lease-minutes <minutes>', 'Claim lease duration', '10')
+  .action(async (o) => {
+    console.log(JSON.stringify(await processOnlineSubmissions({
+      limit: Number(o.limit),
+      leaseMinutes: Number(o.leaseMinutes),
+    }), null, 2));
+  });
+
+program
+  .command('online-submissions')
+  .description('Read-only list of recent online authoring submissions')
+  .option('--limit <limit>', 'Maximum submissions to return', '50')
+  .action(async (o) => {
+    const repo = new OnlineSubmissionRepository();
+    console.log(JSON.stringify(await repo.list(Number(o.limit)), null, 2));
+  });
+
+program
+  .command('online-submission-status')
+  .argument('<submission-id>', 'Submission UUID')
+  .description('Read one online authoring submission status')
+  .action(async (submissionId) => {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(submissionId)) {
+      throw new Error('submission-id must be a UUID');
+    }
+    const repo = new OnlineSubmissionRepository();
+    console.log(JSON.stringify(await repo.get(submissionId), null, 2));
   });
 
 program
@@ -161,4 +196,3 @@ program
   });
 
 await program.parseAsync();
-
