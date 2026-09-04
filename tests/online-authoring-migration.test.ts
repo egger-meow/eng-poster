@@ -33,13 +33,14 @@ describe('online authoring bridge migration', () => {
     expect(sql).not.toMatch(/delete\s+from\s+public\.marketing_posts/);
   });
 
-  it('bounds payloads, validates git SHA, and derives idempotency server-side', async () => {
+  it('bounds payloads, validates git SHA, and derives SHA-256 idempotency server-side', async () => {
     const sql = (await readFile(path, 'utf8')).toLowerCase();
     expect(sql).toContain("jsonb_typeof(p_payload) <> 'object'");
     expect(sql).toContain('octet_length(p_payload::text)');
     expect(sql).toContain("lower(p_expected_git_sha) !~ '^[0-9a-f]{40}$'");
     expect(sql).toContain('submission_key');
-    expect(sql).toContain('md5(');
+    expect(sql).toContain('extensions.digest');
+    expect(sql).toContain("'sha256'");
     expect(sql).toContain('on conflict (submission_key) do nothing');
   });
 });
