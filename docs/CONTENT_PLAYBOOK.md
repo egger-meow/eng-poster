@@ -67,11 +67,22 @@ Exact claims must come from `knowledge/product.md` and `knowledge/claims.md`.
 
 ## Suggested rolling mix
 
-- 35% pain/opinion
-- 25% useful learning insight
-- 20% product/material proof
-- 10% timely topic
-- 10% direct conversion
+- 25% pain/opinion (`pain_point`)
+- 20% parent-perspective creative story (`parent_story`)
+- 20% useful learning insight (`educational_value`)
+- 15% product/material proof (`product_proof`)
+- 10% timely topic (`timely_topic`)
+- 10% direct conversion (`conversion_offer`)
+
+## Parent-Perspective Creative Story (`parent_story` Archetype)
+
+First-person, authentic Taiwanese parent narrative (grades 5–8 / 國七國八家長). The goal is deep emotional resonance followed by a sharp, delightful, or self-deprecating pivot to Paper English.
+
+Key tropes & tension points:
+- Domestic friction: homework dragging until 10pm, private school pressure, fighting over highlighters/study notes.
+- The 3C vs paper dilemma: kids glued to phones, but willing to read physical print when the topic is electric.
+- The sudden realization: kids don't hate reading English, they hate generic, dead-eyed workbooks.
+- The pivot: "好啦我不演了" / "剛剛去翻他書包破案了" / "後來我氣到印了一張丟在他桌上", linking directly to `paperbond.jjmowlab.com` with current offer claims.
 
 ## CTA intensity
 

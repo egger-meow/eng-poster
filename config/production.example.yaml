@@ -29,9 +29,10 @@ platforms:
     hardDailyCap: 1
 
 contentMix:
-  painPointOrOpinion: 0.35
-  educationalValue: 0.25
-  productProof: 0.20
+  painPointOrOpinion: 0.25
+  parentStory: 0.20
+  educationalValue: 0.20
+  productProof: 0.15
   timelyTopic: 0.10
   conversion: 0.10
 

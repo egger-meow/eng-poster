@@ -28,7 +28,7 @@ Your mission is to find and fill the earliest future queue gap within our 14-day
 
 3. **72h Timely-Topic Freshness Rule**:
    - If `queueDaysAhead <= 3` (scheduled to publish within 72 hours): You ARE allowed to select the `timely_topic` archetype (breaking Taiwan education news, 108 課綱 developments, exam trends, seasonal parent discussions) or evergreen archetypes.
-   - If `queueDaysAhead > 3` (scheduled to publish more than 72 hours ahead): You are **STRICTLY FORBIDDEN** from choosing `timely_topic`. You MUST choose an evergreen archetype (`pain_point`, `educational_value`, `product_proof`, `conversion_offer`) so that content does not become outdated or awkward by the time it is published.
+   - If `queueDaysAhead > 3` (scheduled to publish more than 72 hours ahead): You are **STRICTLY FORBIDDEN** from choosing `timely_topic`. You MUST choose an evergreen archetype (`pain_point`, `parent_story`, `educational_value`, `product_proof`, `conversion_offer`) so that content does not become outdated or awkward by the time it is published.
 
 4. **Deterministic Validation Gate (NO Raw SQL Inserts)**:
    - You output a clean, structured JSON payload adhering to the engine's `EnqueuePlanInput` schema.
@@ -98,9 +98,10 @@ Target Daily Time Windows (Asia/Taipei):
 ## 3. Content Mix, Copy-Length Ratio & CTA Proportions
 
 Balance content archetypes across a rolling 30-day window:
-- `pain_point` (35%): Parent homework struggles, cram school burnout, rote memorization frustration, reading fatigue.
-- `educational_value` (25%): Practical reading techniques, vocabulary acquisition through personal passion, syntactic chunking, exam (CAP/會考) reading strategies.
-- `product_proof` (20%): How Paper English customizes authentic English content (Minecraft, NBA, anime, cooking, astronomy) into graded, curriculum-aligned reading materials.
+- `pain_point` (25%): Parent homework struggles, cram school burnout, rote memorization frustration, reading fatigue.
+- `parent_story` (20%): First-person parent narrative / creative story (家長視角創作文). Real domestic tension, study conflict, bed/backpack discovery, test anxiety, with a clever or shameless pivot to Paper English.
+- `educational_value` (20%): Practical reading techniques, vocabulary acquisition through personal passion, syntactic chunking, exam (CAP/會考) reading strategies.
+- `product_proof` (15%): How Paper English customizes authentic English content (Minecraft, NBA, anime, cooking, astronomy) into graded, curriculum-aligned reading materials.
 - `timely_topic` (10%): Current Taiwan education news, 108 課綱 developments, exam trends, seasonal parent discussions. *(Only allowed when `queueDaysAhead <= 3`)*.
 - `conversion_offer` (10%): Clear invitation to experience Paper English personalized reading packs.
 
@@ -304,7 +305,7 @@ Only include posts for the platforms that had missing slots. The template below 
 ```json
 {
   "planDate": "<targetDate YYYY-MM-DD>",
-  "archetype": "<pain_point | educational_value | product_proof | timely_topic | conversion_offer>",
+  "archetype": "<pain_point | parent_story | educational_value | product_proof | timely_topic | conversion_offer>",
   "topic": "<Specific Topic Title>",
   "audience": "Taiwan parents grade 5-8",
   "campaignSlug": "always-on",

@@ -119,7 +119,7 @@ Outputs JSON list of all manually marked winners with observed metrics and full 
 
 When writing content for `targetDate`:
 - **`queueDaysAhead <= 3` (within 72 hours)**: Eligible for the `timely_topic` archetype (breaking Taiwan education news, 108 課綱 announcements, exam trends, seasonal parent discussions) or evergreen archetypes.
-- **`queueDaysAhead > 3` (beyond 72 hours)**: **Strictly forbidden** to choose `timely_topic`. Must use evergreen archetypes (`pain_point`, `educational_value`, `product_proof`, `conversion_offer`) so that content scheduled up to 14 days in advance does not rot or become obsolete before publication.
+- **`queueDaysAhead > 3` (beyond 72 hours)**: **Strictly forbidden** to choose `timely_topic`. Must use evergreen archetypes (`pain_point`, `parent_story`, `educational_value`, `product_proof`, `conversion_offer`) so that content scheduled up to 14 days in advance does not rot or become obsolete before publication.
 
 ---
 
@@ -185,7 +185,7 @@ pnpm social enqueue-plan --input '{"planDate":"2026-09-05","archetype":"pain_poi
 |---|---|---|
 | `id` | `uuid` | Primary key (`gen_random_uuid()`) |
 | `plan_date` | `date` | Target execution date (e.g. `2026-09-05`) |
-| `archetype` | `text` | One of `pain_point`, `educational_value`, `product_proof`, `timely_topic`, `conversion_offer` |
+| `archetype` | `text` | One of `pain_point`, `parent_story`, `educational_value`, `product_proof`, `timely_topic`, `conversion_offer` |
 | `topic` | `text` | Editorial topic title |
 | `audience` | `text` | Target audience (e.g. `Taiwan parents grade 5-8`) |
 | `campaign_slug` | `text` | Campaign slug (e.g. `always-on`) |

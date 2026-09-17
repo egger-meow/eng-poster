@@ -133,3 +133,28 @@ Across the rolling queue, target approximately 60–70% of conversion-capable co
 Vary mechanisms: free-first challenge; parent pain → useful insight → product mechanism → free reveal; personalized weekly material versus fixed workbook; no-credit-card risk reversal; curiosity at the current zero price; educational value followed by one clean offer line. Examples of tone: 「每週重新做的專屬教材，現在免費。」 / 「免信用卡，先拿教材回去用。」 Canonical offer: 「100 位學員以前，每週專屬教材免費。」 Do not mechanically open every post with 免費 or add generic sales paragraphs.
 
 During this offer, directional CTA mix is none 30%, soft 35%, direct 35%; winner evidence may adjust it. Otherwise use the configured baseline. The 1:1 long/short mix and mandatory Facebook/Threads main-body URL remain unchanged, including `ctaMode: none`.
+
+## 家長視角創作文（Parent Narrative / Storytelling: parent_story）
+
+家長視角創作文是社團與社群傳播力最高的主力題型之一。以第一人稱（真實台灣國中家長口吻），描寫高度共鳴的家庭育兒衝突，並在結尾以「猝不及防」、「破案反轉」或「自嘲硬扯」的方式帶入紙屬英文。
+
+### 1. 人設與口吻
+- **第一人稱**：台灣國中生（國七、國八）家長，真實、生活化、有點崩潰心累、說話帶點幽默自嘲。
+- **高頻場景詞**：新北/台北私中、自修、螢光筆畫重點、段考、模考、會考 5A++、大滿貫、補習班到十點、原神、動漫、手機管制。
+- **嚴禁 AI 腔**：絕對禁止「很多家長都會發現」、「在現今教育環境中」等陳腐開頭；第一句直接進入高張力衝突現場。
+
+### 2. 四大情節原型
+1. **抓包破案型**：以為小孩半夜在被窩看壞東西 / 翻書包找違禁品，結果翻出一張寫滿的英文長文，破案發現他在看自己感興趣的主題。
+2. **衝突對峙型**：為了「要不要自修畫重點」、「每天作業搞到十點」母子大吵，氣到印出一張他最愛的主題（原神/NBA/動漫）考卷挑釁他，結果小孩默默寫完。
+3. **斷崖崩盤型**：國小一路全美前三名，國一段考直接摔到 50 幾分，痛定思痛發現會考考的是長文耐力而非死背單字。
+4. **補習算帳型**：算完兩年十萬補習費，換來眼神呆滯與厚厚空白講義，退掉補習改用每週專屬紙本教材。
+
+### 3. 神轉折硬扯技巧
+- 「好啦我不演了，身為被折磨兩年的老母，我真的覺得這太扯...」
+- 「【更新：等等，不用開導了，剛剛破案了。】」
+- 「昨晚我氣到直接印了一份甩在他桌上：『有種你這張連重點都不要畫！』結果...」
+- 緊接著自然或爆笑切入 `https://paperbond.jjmowlab.com`，強調：
+  - 每週根據孩子個人興趣客製
+  - 對齊會考素養長文題型
+  - 回歸「紙本列印」遠離 3C
+  - 當前 Offer：「100 位學員以前，每週專屬教材免費，免信用卡」

@@ -45,6 +45,33 @@ describe('planner idempotency, cap enforcement, and weighted selection', () => {
     expect(early10).toContain('conversion_offer');
   });
 
+  it('supports parentStory archetype mapping and converges proportionally', () => {
+    const mix = {
+      painPointOrOpinion: 0.25,
+      parentStory: 0.20,
+      educationalValue: 0.20,
+      productProof: 0.15,
+      timelyTopic: 0.10,
+      conversion: 0.10,
+    };
+
+    const choices: string[] = [];
+    for (let i = 0; i < 100; i++) {
+      const selected = selectArchetype(mix, choices);
+      choices.push(selected);
+    }
+
+    const counts: Record<string, number> = {};
+    for (const c of choices) counts[c] = (counts[c] ?? 0) + 1;
+
+    expect(counts['pain_point']).toBe(25);
+    expect(counts['parent_story']).toBe(20);
+    expect(counts['educational_value']).toBe(20);
+    expect(counts['product_proof']).toBe(15);
+    expect(counts['timely_topic']).toBe(10);
+    expect(counts['conversion_offer']).toBe(10);
+  });
+
   it('converges proportionally according to configured CTA weights', () => {
     const ctaMix = { none: 0.50, soft: 0.30, direct: 0.20 };
     const choices: Array<'none' | 'soft' | 'direct'> = [];

@@ -61,6 +61,7 @@ const archetypeMapping: Record<string, string> = {
   productProof: 'product_proof',
   timelyTopic: 'timely_topic',
   conversion: 'conversion_offer',
+  parentStory: 'parent_story',
 };
 
 const reverseArchetypeMapping: Record<string, string> = {
@@ -69,6 +70,7 @@ const reverseArchetypeMapping: Record<string, string> = {
   product_proof: 'productProof',
   timely_topic: 'timelyTopic',
   conversion_offer: 'conversion',
+  parent_story: 'parentStory',
 };
 
 export function selectArchetype(
